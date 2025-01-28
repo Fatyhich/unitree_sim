@@ -1,8 +1,11 @@
 FROM ubuntu:20.04
 
+ARG UID
+ARG GID
+
 # here I defined same UID/GID as in my system (`id` from bash to check)
-RUN addgroup --gid 1000 --system oversir \
- && adduser  --uid 1000 --system \
+RUN addgroup --gid ${GID} --system oversir \
+ && adduser  --uid ${UID} --system \
             --ingroup oversir \
             --home /home/oversir \
             --shell /bin/bash oversir
@@ -36,11 +39,18 @@ ENV XAUTHORITY=/tmp/.Xauthority
 RUN usermod -aG sudo oversir
 RUN echo 'oversir ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-RUN pip3 install mujoco pygame
+RUN pip3 install \
+    mujoco \
+    pygame \
+    casadi \
+    meshcat \
+    numpy \
+    matplotlib
+
+USER oversir
 
 RUN echo 'export PATH="$PATH:/home/oversir/projects/unitree_sdk2_python"' >> /home/oversir/.bashrc
 
-USER oversir
 WORKDIR /home/oversir
 
 CMD ["/bin/bash"]

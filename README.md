@@ -16,32 +16,26 @@ Please clone this repo to your machine:
 git clone git@github.com:Fatyhich/unitree_sim.git
 ```
 
-Repo contains Dockerfile with all-you-need dependencies, so to work with project you need to build docker image:
+Repo contains Docker configuration with all required dependencies. To work with the project:
+
 ```bash
 cd unitree_sim
-docker build -t unitree_sim .
+xhost +  # Enable X11 forwarding
+docker compose -f 'compose.yaml' up -d --build 'develop' 
 ```
-This command build image with name `unitree_sim`, now we can run container from this image:
-```bash
-xhost +
-docker run -it --name unitree_h1 \
-        --privileged -e DISPLAY=$DISPLAY \
-        -v /tmp/.X11-unix:/tmp/.X11-unix \
-        -v /PATH/TO/FOLDER/WITH/REPO:/home/oversir/humanoid_sim unitree_sim
-```
-**Important Note** You need to change last line according to your case, for example, if you clone repo to home directory path to folder with repo might looks like `/home/USER/unitree_sim`
+
+This command will:
+1. Build the Docker image with all dependencies
+2. Create and start a container with proper X11 forwarding and volume mounting
+3. Execute the startup script and provide you with an interactive shell
+
+**Important Note**: The compose file is configured to mount `/home/mrob1/Projects` to `/home/oversir/humanoid_sim` in the container. You **may need** to adjust the volume paths in `compose.yaml` according to your system setup. And also please adjust your **hostname** and **GID/UID**.
 
 ## 2. Starting Simulator
-To run simulator with our robot we need:
+Once inside the container, to run the simulator with our robot:
 ```bash
 sudo apt-get update & upgrade -y
-cd humanoid_sim/unitree_sdk2_python
-pip install -e .
-```
-This will install `unitree_sdk2_python` to our system in container. On next step we exactly run simulator:
-```bash
-cd
-cd humanoid_sim/unitree_sdk2_python
+cd humanoid_sim/unitree_mujoco/simulate_python
 python3 ./unitree_mujoco.py
 ```
-As a marker of success we receive new window with simulator and robot appeared ! 
+As a marker of success, you will see a new window with the simulator and robot appear! 
