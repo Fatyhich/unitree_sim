@@ -83,9 +83,9 @@ class Custom:
         self.done = False
 
         self.target_pos = [
-            0., kPi_2,  0., kPi_2, 0., 0., 0.,
-            0., -kPi_2, 0., kPi_2, 0., 0., 0., 
-            0, 0, 0
+            0., 0., 0., 0., 0., 0., 0.,  # Left arm
+            -kPi_2, 0., 0., 1., 0., 0., 0.,  # Right arm
+            0, 0, 0  # Waist
         ]
 
         self.arm_joints = [
@@ -147,7 +147,7 @@ class Custom:
               ratio = np.clip((self.time_ - self.duration_) / (self.duration_ * 2), 0.0, 1.0)
               self.low_cmd.motor_cmd[joint].tau = 0. 
               self.low_cmd.motor_cmd[joint].q = ratio * self.target_pos[i] + (1.0 - ratio) * self.low_state.motor_state[joint].q 
-              self.low_cmd.motor_cmd[joint].dq = 0. 
+              self.low_cmd.motor_cmd[joint].dq = 0.99 
               self.low_cmd.motor_cmd[joint].kp = self.kp 
               self.low_cmd.motor_cmd[joint].kd = self.kd
 

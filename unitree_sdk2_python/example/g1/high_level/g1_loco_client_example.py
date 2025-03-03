@@ -24,7 +24,9 @@ option_list = [
     TestOption(name="zero torque", id=8),
     TestOption(name="wave hand1", id=9), # wave hand without turning around
     TestOption(name="wave hand2", id=10), # wave hand and trun around  
-    TestOption(name="shake hand", id=11),     
+    TestOption(name="shake hand", id=11),   
+    TestOption(name="balance mode", id=12),
+    TestOption(name="start", id=13)  
 ]
 
 class UserInterface:
@@ -106,5 +108,10 @@ if __name__ == "__main__":
             sport_client.ShakeHand()
             time.sleep(3)
             sport_client.ShakeHand()
+        elif test_option.id == 12:
+            res = sport_client.BalanceStand(balance_mode=0)
+            print(res)
+        elif test_option.id == 13:
+            sport_client.Start()
 
         time.sleep(1)

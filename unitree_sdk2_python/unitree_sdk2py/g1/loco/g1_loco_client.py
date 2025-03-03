@@ -106,7 +106,7 @@ class LocoClient(Client):
         self.SetVelocity(vx, vy, vyaw, duration)
 
     def BalanceStand(self, balance_mode: int):
-        self.SetBalanceMode(balance_mode)
+        return self.SetBalanceMode(balance_mode)
 
     def WaveHand(self, turn_flag: bool = False):
         self.SetTaskId(1 if turn_flag else 0)
