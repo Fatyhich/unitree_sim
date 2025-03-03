@@ -35,7 +35,7 @@ This command will:
 Once inside the container, to run the simulator with our robot:
 ```bash
 sudo apt-get update & upgrade -y
-cd humanoid_sim/unitree_mujoco/simulate_python
+cd humanoid_sim/unitree_mujoco/simulate_python 
 python3 ./unitree_mujoco.py
 ```
 As a marker of success, you will see a new window with the simulator and robot appear! 
