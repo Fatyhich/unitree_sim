@@ -12,9 +12,9 @@ sys.path.append('/home/oversir/projects/avp_teleoperate')  # Adjust this path
 from teleop.robot_control.robot_arm_ik import G1_29_ArmIK
 
 # Control parameters
-dt = 0.002  # Control loop timestep
+dt = 0.05  # Control loop timestep
 running_time = 0.0
-
+ 
 # Initialize IK solver
 arm_ik = G1_29_ArmIK(Unit_Test=False, Visualization=True)
 

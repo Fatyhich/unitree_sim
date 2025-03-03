@@ -7,24 +7,28 @@ from unitree_sdk2py.core.channel import ChannelFactoryInitialize
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, MotorCmd_
 
 # Initial standing position for humanoid (35 joints)
-# These values are placeholders - you should replace with actual safe joint positions for your HG robot
 stand_up_joint_pos = np.zeros(35, dtype=float)
 # Example values for some main joints (adjust these based on your robot's specifications)
-# Legs
+# Legs (0-11): L_LEG and R_LEG joints
 stand_up_joint_pos[0:12] = 0.0  # Hip, knee, ankle joints
-# Arms
-stand_up_joint_pos[12:24] = 0.0  # Shoulder, elbow, wrist joints
-# Torso and head
-stand_up_joint_pos[24:35] = 0.0  # Waist, neck joints
+# Waist (12-14): WAIST_YAW, WAIST_ROLL, WAIST_PITCH
+stand_up_joint_pos[12:15] = 0.0
+# Left arm (15-21): L_SHOULDER to L_WRIST joints
+stand_up_joint_pos[15:22] = 0.0
+# Right arm (22-28): R_SHOULDER to R_WRIST joints
+stand_up_joint_pos[22:29] = 0.0
+# Additional joints (29-34): Any remaining joints
+stand_up_joint_pos[29:35] = 0.0
 
 # Crouching position
 stand_down_joint_pos = np.zeros(35, dtype=float)
 # Modify these values for a safe crouching position
 stand_down_joint_pos[0:12] = 0.2  # Slightly bent legs
-stand_down_joint_pos[12:24] = 0.0  # Arms in neutral position
-stand_down_joint_pos[24:35] = 0.0  # Straight torso and head
+stand_down_joint_pos[12:15] = 0.0  # Straight waist
+stand_down_joint_pos[15:29] = 0.0  # Arms in neutral position
+stand_down_joint_pos[29:35] = 0.0  # Additional joints in neutral position
 
-dt = 0.002
+dt = 1/ 200
 running_time = 0.0
 
 input("Press enter to start")
