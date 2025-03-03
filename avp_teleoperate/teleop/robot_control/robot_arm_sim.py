@@ -8,11 +8,13 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_           
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
 from unitree_sdk2py.utils.crc import CRC
 
+# Simulator configuration
+DOMAIN_ID = 1  # Use domain ID 1 for simulator
+INTERFACE = "lo"  # Use loopback interface for simulator
 kTopicLowCommand = "rt/lowcmd"
 kTopicLowState = "rt/lowstate"
 G1_29_Num_Motors = 35
 H1_2_Num_Motors = 35
- 
 
 class MotorState:
     def __init__(self):
@@ -26,6 +28,7 @@ class G1_29_LowState:
 class H1_2_LowState:
     def __init__(self):
         self.motor_state = [MotorState() for _ in range(H1_2_Num_Motors)]
+
 class DataBuffer:
     def __init__(self):
         self.data = None
@@ -45,23 +48,24 @@ class G1_29_ArmController:
         self.q_target = np.zeros(14)
         self.tauff_target = np.zeros(14)
 
-        self.kp_high = 300.0
-        self.kd_high = 3.0
-        self.kp_low = 80.0
-        self.kd_low = 3.0
-        self.kp_wrist = 40.0
-        self.kd_wrist = 1.5
+        # Adjusted gains for simulator
+        self.kp_high = 150.0  # Reduced from 300
+        self.kd_high = 2.0    # Reduced from 3.0
+        self.kp_low = 40.0    # Reduced from 80.0
+        self.kd_low = 2.0     # Reduced from 3.0
+        self.kp_wrist = 20.0  # Reduced from 40.0
+        self.kd_wrist = 1.0   # Reduced from 1.5
 
         self.all_motor_q = None
-        self.arm_velocity_limit = 20.0
-        self.control_dt = 1.0 / 250.0
+        self.arm_velocity_limit = 10.0  # Reduced from 20.0 for smoother simulation
+        self.control_dt = 0.002  # Match simulator timestep
 
         self._speed_gradual_max = False
         self._gradual_start_time = None
         self._gradual_time = None
 
-        # initialize lowcmd publisher and lowstate subscriber
-        ChannelFactoryInitialize(0)
+        # initialize lowcmd publisher and lowstate subscriber with simulator config
+        ChannelFactoryInitialize(DOMAIN_ID, INTERFACE)
         self.lowcmd_publisher = ChannelPublisher(kTopicLowCommand, LowCmd_)
         self.lowcmd_publisher.Init()
         self.lowstate_subscriber = ChannelSubscriber(kTopicLowState, LowState_)
@@ -73,9 +77,16 @@ class G1_29_ArmController:
         self.subscribe_thread.daemon = True
         self.subscribe_thread.start()
 
+        # Wait for simulator connection
+        retry_count = 0
+        max_retries = 50  # 5 seconds timeout
         while not self.lowstate_buffer.GetData():
-            time.sleep(0.01)
-            print("[G1_29_ArmController] Waiting to subscribe dds...")
+            time.sleep(0.1)
+            retry_count += 1
+            if retry_count % 10 == 0:
+                print("[G1_29_ArmController] Waiting to connect to simulator...")
+            if retry_count >= max_retries:
+                raise TimeoutError("Failed to connect to simulator after 5 seconds")
 
         # initialize hg's lowcmd msg
         self.crc = CRC()
@@ -105,7 +116,7 @@ class G1_29_ArmController:
                 else:
                     self.msg.motor_cmd[id].kp = self.kp_high
                     self.msg.motor_cmd[id].kd = self.kd_high
-            self.msg.motor_cmd[id].q  = self.all_motor_q[id]
+            self.msg.motor_cmd[id].q = self.all_motor_q[id]
         print("Lock OK!\n")
 
         # initialize publish thread
@@ -122,10 +133,10 @@ class G1_29_ArmController:
             if msg is not None:
                 lowstate = G1_29_LowState()
                 for id in range(G1_29_Num_Motors):
-                    lowstate.motor_state[id].q  = msg.motor_state[id].q
+                    lowstate.motor_state[id].q = msg.motor_state[id].q
                     lowstate.motor_state[id].dq = msg.motor_state[id].dq
                 self.lowstate_buffer.SetData(lowstate)
-            time.sleep(0.002)
+            time.sleep(0.002)  # Match simulator timestep
 
     def clip_arm_q_target(self, target_q, velocity_limit):
         current_q = self.get_current_dual_arm_q()
@@ -139,29 +150,45 @@ class G1_29_ArmController:
             start_time = time.time()
 
             with self.ctrl_lock:
-                arm_q_target     = self.q_target
+                arm_q_target = self.q_target
                 arm_tauff_target = self.tauff_target
 
-            cliped_arm_q_target = self.clip_arm_q_target(arm_q_target, velocity_limit = self.arm_velocity_limit)
+            cliped_arm_q_target = self.clip_arm_q_target(arm_q_target, velocity_limit=self.arm_velocity_limit)
 
+            # Initialize all motors first
+            for id in G1_29_JointIndex:
+                self.msg.motor_cmd[id].mode = 1  # Enable motor
+                self.msg.motor_cmd[id].q = self.all_motor_q[id]
+                self.msg.motor_cmd[id].dq = 0
+                self.msg.motor_cmd[id].tau = 0
+                self.msg.motor_cmd[id].kp = self.kp_high
+                self.msg.motor_cmd[id].kd = self.kd_high
+
+            # Then update arm motors
             for idx, id in enumerate(G1_29_JointArmIndex):
                 self.msg.motor_cmd[id].q = cliped_arm_q_target[idx]
                 self.msg.motor_cmd[id].dq = 0
-                self.msg.motor_cmd[id].tau = arm_tauff_target[idx]      
+                self.msg.motor_cmd[id].tau = arm_tauff_target[idx]
+                if self._Is_wrist_motor(id):
+                    self.msg.motor_cmd[id].kp = self.kp_wrist
+                    self.msg.motor_cmd[id].kd = self.kd_wrist
+                else:
+                    self.msg.motor_cmd[id].kp = self.kp_low
+                    self.msg.motor_cmd[id].kd = self.kd_low
 
             self.msg.crc = self.crc.Crc(self.msg)
             self.lowcmd_publisher.Write(self.msg)
 
             if self._speed_gradual_max is True:
                 t_elapsed = start_time - self._gradual_start_time
-                self.arm_velocity_limit = 20.0 + (10.0 * min(1.0, t_elapsed / 5.0))
+                self.arm_velocity_limit = 10.0 + (5.0 * min(1.0, t_elapsed / 5.0))
 
             current_time = time.time()
             all_t_elapsed = current_time - start_time
             sleep_time = max(0, (self.control_dt - all_t_elapsed))
             time.sleep(sleep_time)
-            # print(f"arm_velocity_limit:{self.arm_velocity_limit}")
-            # print(f"sleep_time:{sleep_time}")
+            print(f"arm_velocity_limit:{self.arm_velocity_limit}")
+            print(f"sleep_time:{sleep_time}")
 
     def ctrl_dual_arm(self, q_target, tauff_target):
         '''Set control target values q & tau of the left and right arm motors.'''
@@ -171,27 +198,27 @@ class G1_29_ArmController:
 
     def get_mode_machine(self):
         '''Return current dds mode machine.'''
-        return self.lowstate_subscriber.Read().mode_machine
-    
+        msg = self.lowstate_subscriber.Read()
+        return msg.mode_machine if msg else 0
+
     def get_current_motor_q(self):
         '''Return current state q of all body motors.'''
         return np.array([self.lowstate_buffer.GetData().motor_state[id].q for id in G1_29_JointIndex])
-    
+
     def get_current_dual_arm_q(self):
         '''Return current state q of the left and right arm motors.'''
         return np.array([self.lowstate_buffer.GetData().motor_state[id].q for id in G1_29_JointArmIndex])
-    
+
     def get_current_dual_arm_dq(self):
         '''Return current state dq of the left and right arm motors.'''
         return np.array([self.lowstate_buffer.GetData().motor_state[id].dq for id in G1_29_JointArmIndex])
-    
+
     def ctrl_dual_arm_go_home(self):
         '''Move both the left and right arms of the robot to their home position by setting the target joint angles (q) and torques (tau) to zero.'''
         print("[G1_29_ArmController] ctrl_dual_arm_go_home start...")
         with self.ctrl_lock:
             self.q_target = np.zeros(14)
-            # self.tauff_target = np.zeros(14)
-        tolerance = 0.05  # Tolerance threshold for joint angles to determine "close to zero", can be adjusted based on your motor's precision requirements
+        tolerance = 0.05
         while True:
             current_q = self.get_current_dual_arm_q()
             if np.all(np.abs(current_q) < tolerance):
@@ -199,7 +226,7 @@ class G1_29_ArmController:
                 break
             time.sleep(0.05)
 
-    def speed_gradual_max(self, t = 5.0):
+    def speed_gradual_max(self, t=5.0):
         '''Parameter t is the total time required for arms velocity to gradually increase to its maximum value, in seconds. The default is 5.0.'''
         self._gradual_start_time = time.time()
         self._gradual_time = t
@@ -207,7 +234,7 @@ class G1_29_ArmController:
 
     def speed_instant_max(self):
         '''set arms velocity to the maximum value immediately, instead of gradually increasing.'''
-        self.arm_velocity_limit = 30.0
+        self.arm_velocity_limit = 15.0  # Reduced from 30.0 for simulator
 
     def _Is_weak_motor(self, motor_index):
         weak_motors = [
@@ -225,7 +252,7 @@ class G1_29_ArmController:
             G1_29_JointIndex.kRightElbow.value,
         ]
         return motor_index.value in weak_motors
-    
+
     def _Is_wrist_motor(self, motor_index):
         wrist_motors = [
             G1_29_JointIndex.kLeftWristRoll.value,
@@ -570,12 +597,14 @@ if __name__ == "__main__":
     from robot_arm_ik import G1_29_ArmIK, H1_2_ArmIK
     import pinocchio as pin 
 
-    arm_ik = G1_29_ArmIK(Unit_Test = True, Visualization = False)
-    arm = G1_29_ArmController()
-    # arm_ik = H1_2_ArmIK(Unit_Test = True, Visualization = False)
-    # arm = H1_2_ArmController()
+    print("Starting simulator test...")
+    print("Make sure the Mujoco simulator is running!")
+    input("Press Enter to continue...")
 
-    # initial positon
+    arm_ik = G1_29_ArmIK(Unit_Test=True, Visualization=False)
+    arm = G1_29_ArmController()
+
+    # initial position
     L_tf_target = pin.SE3(
         pin.Quaternion(1, 0, 0, 0),
         np.array([0.25, +0.2, 0.1]),
@@ -586,41 +615,61 @@ if __name__ == "__main__":
         np.array([0.25, -0.2, 0.1]),
     )
 
-    rotation_speed = 0.005  # Rotation speed in radians per iteration
+    rotation_speed = 0.003  # Reduced from 0.005 for smoother simulation
     q_target = np.zeros(35)
     tauff_target = np.zeros(35)
 
+    print("Initial state:")
+    print("Current motor positions:", arm.get_current_motor_q())
+    print("Current arm positions:", arm.get_current_dual_arm_q())
+
+    print("Waiting 2 seconds...")
+    time.sleep(2)
     user_input = input("Please enter the start signal (enter 's' to start the subsequent program): \n")
     if user_input.lower() == 's':
         step = 0
         arm.speed_gradual_max()
-        while True:
-            if step <= 120:
-                angle = rotation_speed * step
-                L_quat = pin.Quaternion(np.cos(angle / 2), 0, np.sin(angle / 2), 0)  # y axis
-                R_quat = pin.Quaternion(np.cos(angle / 2), 0, 0, np.sin(angle / 2))  # z axis
+        try:
+            while True:
+                if step <= 120:
+                    angle = rotation_speed * step
+                    L_quat = pin.Quaternion(np.cos(angle / 2), 0, np.sin(angle / 2), 0)  # y axis
+                    R_quat = pin.Quaternion(np.cos(angle / 2), 0, 0, np.sin(angle / 2))  # z axis
 
-                L_tf_target.translation += np.array([0.001,  0.001, 0.001])
-                R_tf_target.translation += np.array([0.001, -0.001, 0.001])
-            else:
-                angle = rotation_speed * (240 - step)
-                L_quat = pin.Quaternion(np.cos(angle / 2), 0, np.sin(angle / 2), 0)  # y axis
-                R_quat = pin.Quaternion(np.cos(angle / 2), 0, 0, np.sin(angle / 2))  # z axis
+                    L_tf_target.translation += np.array([0.0005, 0.0005, 0.0005])
+                    R_tf_target.translation += np.array([0.0005, -0.0005, 0.0005])
+                else:
+                    angle = rotation_speed * (240 - step)
+                    L_quat = pin.Quaternion(np.cos(angle / 2), 0, np.sin(angle / 2), 0)
+                    R_quat = pin.Quaternion(np.cos(angle / 2), 0, 0, np.sin(angle / 2))
 
-                L_tf_target.translation -= np.array([0.001,  0.001, 0.001])
-                R_tf_target.translation -= np.array([0.001, -0.001, 0.001])
+                    L_tf_target.translation -= np.array([0.0005, 0.0005, 0.0005])
+                    R_tf_target.translation -= np.array([0.0005, -0.0005, 0.0005])
 
-            L_tf_target.rotation = L_quat.toRotationMatrix()
-            R_tf_target.rotation = R_quat.toRotationMatrix()
+                L_tf_target.rotation = L_quat.toRotationMatrix()
+                R_tf_target.rotation = R_quat.toRotationMatrix()
 
-            current_lr_arm_q  = arm.get_current_dual_arm_q()
-            current_lr_arm_dq = arm.get_current_dual_arm_dq()
+                current_lr_arm_q = arm.get_current_dual_arm_q()
+                current_lr_arm_dq = arm.get_current_dual_arm_dq()
 
-            sol_q, sol_tauff = arm_ik.solve_ik(L_tf_target.homogeneous, R_tf_target.homogeneous, current_lr_arm_q, current_lr_arm_dq)
+                sol_q, sol_tauff = arm_ik.solve_ik(L_tf_target.homogeneous, R_tf_target.homogeneous, 
+                                                 current_lr_arm_q, current_lr_arm_dq)
 
-            arm.ctrl_dual_arm(sol_q, sol_tauff)
+                # Print debug info every 10 steps
+                if step % 10 == 0:
+                    print(f"\nStep {step}:")
+                    print("Target positions:", sol_q)
+                    print("Current positions:", current_lr_arm_q)
+                    print("Position error:", np.abs(sol_q - current_lr_arm_q).max())
+                    print("Target torques:", sol_tauff)
 
-            step += 1
-            if step > 240:
-                step = 0
-            time.sleep(0.01)
+                arm.ctrl_dual_arm(sol_q, sol_tauff)
+
+                step += 1
+                if step > 240:
+                    step = 0
+                time.sleep(0.01)
+        except KeyboardInterrupt:
+            print("\nStopping the controller...")
+            arm.ctrl_dual_arm_go_home()
+            print("Controller stopped safely.")
