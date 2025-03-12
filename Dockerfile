@@ -49,7 +49,7 @@ RUN pip3 install \
 
 USER oversir
 
-RUN echo 'export PATH="$PATH:/home/oversir/projects/unitree_sdk2_python"' >> /home/oversir/.bashrc
+RUN echo 'export PATH="$PATH:/home/oversir/humanoid_wp/unitree_sdk2_python"' >> /home/oversir/.bashrc
 
 WORKDIR /home/oversir
 
