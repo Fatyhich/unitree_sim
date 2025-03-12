@@ -28,6 +28,35 @@ The expected format of the input CSV file (Tr.csv) is:
    - Save the parsed data to `data/parsed_trajectory.csv`
    - Generate visualization plots in the `data/plots` directory
 
+### Using the Parser Class
+
+You can also use the `Parser` class directly in your own code:
+
+```python
+from parser import Parser
+
+# Initialize with default paths
+parser = Parser()
+
+# Or specify custom paths
+parser = Parser(
+    input_file="path/to/input.csv",
+    output_file="path/to/output.csv",
+    plot_dir="path/to/plots"
+)
+
+# Process everything at once
+parser.process()
+
+# Or step by step
+parser.parse_trajectory_file()
+parser.save_to_csv()
+parser.plot_trajectory()
+
+# Access the trajectory data
+trajectory_data = parser.trajectory_data
+```
+
 ## Output
 
 The parser generates:
