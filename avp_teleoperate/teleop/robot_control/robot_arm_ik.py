@@ -23,13 +23,13 @@ class G1_29_ArmIK:
 
         if not self.Unit_Test:
             self.robot = pin.RobotWrapper.BuildFromURDF(
-                '/home/oversir/projects/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
-                '/home/oversir/projects/avp_teleoperate/assets/g1/'
+                '/home/oversir/humanoid_wp/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
+                '/home/oversir/humanoid_wp/avp_teleoperate/assets/g1/'
             )
         else:
             self.robot = pin.RobotWrapper.BuildFromURDF(
-                '/home/oversir/projects/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
-                '/home/oversir/projects/avp_teleoperate/assets/g1/'
+                '/home/oversir/humanoid_wp/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
+                '/home/oversir/humanoid_wp/avp_teleoperate/assets/g1/'
             ) # for test
 
         self.mixed_jointsToLockIDs = [
