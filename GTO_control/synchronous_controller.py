@@ -8,8 +8,8 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_           
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
 from unitree_sdk2py.utils.crc import CRC
 
-command_topic = "rt/lowcmd"
-# command_topic = "rt/arm_sdk"
+# command_topic = "rt/lowcmd"
+command_topic = "rt/arm_sdk"
 
 
 class G1JointArmIndex(IntEnum):
@@ -86,7 +86,7 @@ class SynchronousController:
         Args:
             output_interface (str, optional): Specifies which hardware interface
                 is used to transfer commands. 
-                SELECTED HARDWARE INTERFACE IS RECOMMENDED TO HAVE IP 192.168.123.99. 
+                SELECTED HARDWARE INTERFACE IS RECOMMENDED TO HAVE IP 192.168.123.99
                 Defaults to None.
             in_local (bool, optional): 
                 Used to indicate that robot runs in a simulation. 

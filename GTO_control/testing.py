@@ -33,8 +33,8 @@ def test_sine(
         controller:SynchronousController, 
         total_time=10, 
         dt=0.02, 
-        omega=np.pi/3,
-        joint_idx=G1JointArmIndex.kLeftShoulderRoll
+        omega=np.pi/6,
+        joint_idx=G1JointArmIndex.kLeftWristRoll
         ):
     # generate velocities
     times = np.arange(0, total_time, dt)
@@ -71,7 +71,7 @@ def main():
         in_local=args.local
     )
     smooth_bringup(controller)
-    test_sine(controller)
+    test_sine(controller, dt=0.01)
 
 if __name__ == '__main__':
     main()

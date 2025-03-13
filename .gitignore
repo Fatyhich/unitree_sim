@@ -20,3 +20,4 @@ env/
 
 # ignore mujoco logs
 unitree_mujoco/simulate_python/MUJOCO_LOG.TXT
+
