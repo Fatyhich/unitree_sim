@@ -7,6 +7,7 @@ from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, Cha
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_                                 # idl
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
 from unitree_sdk2py.utils.crc import CRC
+from arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
 # command_topic = "rt/lowcmd"
 command_topic = "rt/arm_sdk"
@@ -157,6 +158,23 @@ class SynchronousController:
         """
         self.SetCommand(targets)
         self.PublishCommand()
+
+    def GetLeftJoints(self):
+        result = []
+        for joint in  G1JointLeftArmIndex:
+            result.append(self.low_state.motor_state[joint].q)
+        return result
+
+    def GetRightJoints(self):
+        result = []
+        for joint in G1JointRightArmIndex:
+            result.append(self.low_state.motor_state[joint].q)
+        return result
+    
+    def GetJointStates(self):
+        left = self.GetLeftJoints()
+        right = self.GetRightJoints()
+        return left + right
 
 def main():
     controller = SynchronousController(in_local=True)
