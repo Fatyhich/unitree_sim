@@ -1,8 +1,8 @@
 import numpy as np
 import threading
 import time
-from enum import IntEnum
 
+from arm_definitions import G1JointIndex
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize # dds
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_                                 # idl
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
@@ -12,71 +12,6 @@ from unitree_sdk2py.utils.crc import CRC
 command_topic = "rt/arm_sdk"
 
 
-class G1JointArmIndex(IntEnum):
-    # Left arm
-    kLeftShoulderPitch = 15
-    kLeftShoulderRoll = 16
-    kLeftShoulderYaw = 17
-    kLeftElbow = 18
-    kLeftWristRoll = 19
-    kLeftWristPitch = 20
-    kLeftWristyaw = 21
-
-    # Right arm
-    kRightShoulderPitch = 22
-    kRightShoulderRoll = 23
-    kRightShoulderYaw = 24
-    kRightElbow = 25
-    kRightWristRoll = 26
-    kRightWristPitch = 27
-    kRightWristYaw = 28
-
-class G1JointIndex(IntEnum):
-    # Left leg
-    LeftHipPitch = 0
-    LeftHipRoll = 1
-    LeftHipYaw = 2
-    LeftKnee = 3
-    LeftAnklePitch = 4
-    LeftAnkleRoll = 5
-
-    # Right leg
-    RightHipPitch = 6
-    RightHipRoll = 7
-    RightHipYaw = 8
-    RightKnee = 9
-    RightAnklePitch = 10
-    RightAnkleRoll = 11
-
-    WaistYaw = 12
-    WaistRoll = 13
-    WaistPitch = 14
-
-    # Left arm
-    LeftShoulderPitch = 15
-    LeftShoulderRoll = 16
-    LeftShoulderYaw = 17
-    LeftElbow = 18
-    LeftWristRoll = 19
-    LeftWristPitch = 20
-    LeftWristYaw = 21
-
-    # Right arm
-    RightShoulderPitch = 22
-    RightShoulderRoll = 23
-    RightShoulderYaw = 24
-    RightElbow = 25
-    RightWristRoll = 26
-    RightWristPitch = 27
-    RightWristYaw = 28
-    
-    # not used
-    NotUsedJoint0 = 29
-    NotUsedJoint1 = 30
-    NotUsedJoint2 = 31
-    NotUsedJoint3 = 32
-    NotUsedJoint4 = 33
-    NotUsedJoint5 = 34
 
 class SynchronousController:
 
