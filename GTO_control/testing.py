@@ -3,8 +3,8 @@ from time import sleep
 import matplotlib.pyplot as plt
 import argparse
 from synchronous_controller import SynchronousController
-from synchronous_controller import G1JointArmIndex
-from synchronous_controller import G1JointIndex
+from arm_definitions import G1JointArmIndex
+from arm_definitions import G1JointIndex
 
 def create_controller(output_interface=None, in_local=False):
     controller = SynchronousController(
@@ -34,7 +34,7 @@ def test_sine(
         total_time=10, 
         dt=0.02, 
         omega=np.pi/6,
-        joint_idx=G1JointArmIndex.kLeftWristRoll
+        joint_idx=G1JointArmIndex.LeftWristRoll
         ):
     # generate velocities
     times = np.arange(0, total_time, dt)
