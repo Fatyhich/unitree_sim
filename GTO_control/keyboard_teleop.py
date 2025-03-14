@@ -15,8 +15,8 @@ class KeyboardTeleop:
         # crate stuff for running that shit
         self.ik_solver = ArmKinematics()
         self.controller = SynchronousController(
-            output_interface=network_interface,
-            in_local=is_local
+            network_interface=network_interface,
+            is_in_local=is_local
         )
 
         print("raising hands...")
