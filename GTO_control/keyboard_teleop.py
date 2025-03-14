@@ -3,29 +3,32 @@ import argparse
 from getch import getch
 from testing import smooth_bringup
 
-from arm_kinematics import ArmKinematics
-from synchronous_controller import SynchronousController
+from decartes_controller import DecartesController
 from arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
+
+from utils import get_rpy_component, set_rpy_component
 
 class KeyboardTeleop:
 
-    def __init__(self, is_local=False, network_interface=None, is_left=True, dpos=0.005):
+    def __init__(self, is_local=False, network_interface=None, is_left=True, dpos=0.005, drot=0.01):
         self.dpos = dpos
+        self.drot = drot
+        self.yaw_idx = 2
+        self.pitch_idx = 1
+        self.roll_idx = 0
 
-        # crate stuff for running that shit
-        self.ik_solver = ArmKinematics()
-        self.controller = SynchronousController(
-            network_interface=network_interface,
-            is_in_local=is_local
-        )
+        # crate control for running that shit
+        self.controller = DecartesController(
+            is_in_local=is_local, 
+            network_interface=network_interface
+            )
 
         print("raising hands...")
         # raise hands slowly
         smooth_bringup(controller=self.controller)
 
         print("initializing poses")
-        joint_states = np.array(self.controller.GetJointStates())
-        left_pose, right_pose = self.ik_solver.get_forward_kinematics(joint_states)
+        left_pose, right_pose = self.controller.get_ee_poses()
         print('poses intialized')
 
         if is_left:
@@ -39,32 +42,26 @@ class KeyboardTeleop:
 
         # create keymap
         self.keymap = {
-            'w' : self.forward,
-            's' : self.backward,
+            'e' : self.forward,
+            'q' : self.backward,
             'a' : self.left,
             'd' : self.right,
-            'c' : self.up,
-            'z' : self.down
+            'w' : self.up,
+            's' : self.down,
+            'i' : self.roll_inc,
+            'k' : self.roll_dec,
+            'l' : self.pitch_inc,
+            'j' : self.pitch_dec,
+            'o' : self.yaw_inc,
+            'u' : self.yaw_dec
+
 
         }
 
     def update(self):
-        new_q = self.ik_solver.solve_ik(
-            l_wrist_target=self.main_pose.homogeneous,
-            r_wrist_target=self.off_pose.homogeneous
-        )
-        msg = {}
+        self.controller.go_to(self.main_pose.homogeneous, self.off_pose.homogeneous)
 
-        for idx, joint in enumerate(G1JointLeftArmIndex):
-            msg[joint] = (new_q[idx], 0)
-        
-        for idx, joint in enumerate(G1JointRightArmIndex):
-            msg[joint] = (new_q[7 + idx], 0)
-
-        self.controller.ExecuteCommand(msg)
-
-
-    # arm actions
+    # translation actions
     def up(self):
         print("up")
         self.main_pose.translation[2] += self.dpos
@@ -88,14 +85,41 @@ class KeyboardTeleop:
     def backward(self):
         self.main_pose.translation[0] -= self.dpos
 
+    # rotation actions
+    def yaw_inc(self):
+        new_val = get_rpy_component(self.main_pose, self.yaw_idx) + self.drot
+        set_rpy_component(self.main_pose, self.yaw_idx, new_val)
+
+    def yaw_dec(self):
+        new_val = get_rpy_component(self.main_pose, self.yaw_idx) - self.drot
+        set_rpy_component(self.main_pose, self.yaw_idx, new_val)
+
+    def pitch_inc(self):
+        new_val = get_rpy_component(self.main_pose, self.pitch_idx) + self.drot
+        set_rpy_component(self.main_pose, self.pitch_idx, new_val)
+
+    def pitch_dec(self):
+        new_val = get_rpy_component(self.main_pose, self.pitch_idx) - self.drot
+        set_rpy_component(self.main_pose, self.pitch_idx, new_val)
+
+    def roll_inc(self):
+        new_val = get_rpy_component(self.main_pose, self.roll_idx) + self.drot
+        set_rpy_component(self.main_pose, self.roll_idx, new_val)
+
+    def roll_dec(self):
+        new_val = get_rpy_component(self.main_pose, self.roll_idx) - self.drot
+        set_rpy_component(self.main_pose, self.roll_idx, new_val)
+
     def print_keymap(self):
         pass
 
     def run_teleop(self):
         print("started teleop")
         cur_cmd = '~'
-        while cur_cmd != 'q':
+        while cur_cmd != '-':
             cur_cmd = getch()
+            if not cur_cmd in self.keymap.keys():
+                print(f'unknown command: {cur_cmd}') 
             self.keymap[cur_cmd]()
             self.update()
             
@@ -109,7 +133,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    tele = KeyboardTeleop(is_local=args.local, network_interface=args.network_interface)
+    tele = KeyboardTeleop(is_local=args.local, network_interface=args.network_interface, is_left=True)
     tele.run_teleop()
 
 if __name__ == '__main__':
