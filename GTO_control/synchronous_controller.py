@@ -15,7 +15,8 @@ class SynchronousController:
         """Initializes a controller
 
         Args:
-            network_interface (str, optional): Specifies which hardware interface
+            network_interface (str, optional): 
+                Specifies which hardware interface
                 is used to transfer commands. 
                 SELECTED HARDWARE INTERFACE IS RECOMMENDED TO HAVE IP 192.168.123.99
                 Defaults to None.
@@ -23,7 +24,13 @@ class SynchronousController:
                 Used to indicate that robot runs in a simulation. 
                 Used only for ChannelFactoryInitialize(1, "lo").
                 Defaults to False.
+            command_topic (str, optional): 
+                Specifies topic on which commands will be published.
+                Must be "rt/arm_sdk" or "rt/low_cmd".
         """
+
+        self.command_topic = command_topic
+
         # set pid controls
         self.kp = 40.
         self.kd = 1.5
@@ -68,7 +75,7 @@ class SynchronousController:
     def Init(self):
 
         # create publisher #
-        self.arm_sdk_publisher = ChannelPublisher(command_topic, LowCmd_)
+        self.arm_sdk_publisher = ChannelPublisher(self.command_topic, LowCmd_)
         self.arm_sdk_publisher.Init()
 
         # create subscriber # 
