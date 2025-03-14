@@ -20,13 +20,15 @@ def construct_arm_message(joint_states, joint_velocities=None):
 
     return msg
 
+def SE3_from_xyz_rpy(xyz, rpy):
+    rot_matr = pin.rpy.rpyToMatrix(rpy)
+    return pin.SE3(rot_matr, xyz)
+
+
 def tf_to_rpy(tf):
     rot_matrix = tf.rotation
     rpy = pin.rpy.matrixToRpy(rot_matrix)
     return rpy
-
-def rpy_to_rot_matrix(rpy):
-    return pin.rpy.rpyToMatrix(rpy)
 
 def get_rpy_component(tf, component_idx):
     return tf_to_rpy(tf)[component_idx]
@@ -34,7 +36,7 @@ def get_rpy_component(tf, component_idx):
 def set_rpy_component(tf, component_idx, new_value):
     rpy = tf_to_rpy(tf)
     rpy[component_idx] = new_value
-    tf.rotation = rpy_to_rot_matrix(rpy)
+    tf.rotation = pin.rpy.rpyToMatrix(rpy)
     return tf
 
 

@@ -28,15 +28,24 @@ class KeyboardTeleop:
         smooth_bringup(controller=self.controller)
 
         print("initializing poses")
-        left_pose, right_pose = self.controller.get_ee_poses()
+        left_pose, right_pose = self.controller.get_ee_xyzrpy()
+        print('left pos: ')
+        print(left_pose[0])
+        print('right pos:')
+        print(right_pose[0])
         print('poses intialized')
 
+        self.is_left = is_left
         if is_left:
-            self.main_pose = left_pose
-            self.off_pose = right_pose
+            self.main_xyz = left_pose[0]
+            self.main_rpy = left_pose[1]
+            self.off_xyz = right_pose[0]
+            self.off_rpy = right_pose[1]
         else:
-            self.main_pose = right_pose
-            self.off_pose = left_pose
+            self.off_xyz = left_pose[0]
+            self.off_rpy = left_pose[1]
+            self.main_xyz = right_pose[0]
+            self.main_rpy = right_pose[1]
 
         self.update()
 
@@ -59,56 +68,53 @@ class KeyboardTeleop:
         }
 
     def update(self):
-        self.controller.go_to(self.main_pose.homogeneous, self.off_pose.homogeneous)
+        if self.is_left:
+            self.controller.go_to(self.main_xyz, self.main_rpy, self.off_xyz, self.off_rpy)
+        else:
+            self.controller.go_to(self.off_xyz, self.off_rpy, self.main_xyz, self.main_rpy)
 
     # translation actions
     def up(self):
         print("up")
-        self.main_pose.translation[2] += self.dpos
+        self.main_xyz[2] += self.dpos
 
     def down(self):
         print("down")
-        self.main_pose.translation[2] -= self.dpos
+        self.main_xyz[2] -= self.dpos
 
     def left(self):
         print("left")
-        self.main_pose.translation[1] += self.dpos
+        self.main_xyz[1] += self.dpos
 
     def right(self):
         print("right")
-        self.main_pose.translation[1] -= self.dpos
+        self.main_xyz[1] -= self.dpos
 
     def forward(self):
         print("fwd")
-        self.main_pose.translation[0] += self.dpos
+        self.main_xyz[0] += self.dpos
 
     def backward(self):
-        self.main_pose.translation[0] -= self.dpos
+        self.main_xyz[0] -= self.dpos
 
     # rotation actions
     def yaw_inc(self):
-        new_val = get_rpy_component(self.main_pose, self.yaw_idx) + self.drot
-        set_rpy_component(self.main_pose, self.yaw_idx, new_val)
+        self.main_rpy[self.yaw_idx] += self.drot
 
     def yaw_dec(self):
-        new_val = get_rpy_component(self.main_pose, self.yaw_idx) - self.drot
-        set_rpy_component(self.main_pose, self.yaw_idx, new_val)
+        self.main_rpy[self.yaw_idx] -= self.drot
 
     def pitch_inc(self):
-        new_val = get_rpy_component(self.main_pose, self.pitch_idx) + self.drot
-        set_rpy_component(self.main_pose, self.pitch_idx, new_val)
+        self.main_rpy[self.pitch_idx] += self.drot
 
     def pitch_dec(self):
-        new_val = get_rpy_component(self.main_pose, self.pitch_idx) - self.drot
-        set_rpy_component(self.main_pose, self.pitch_idx, new_val)
+        self.main_rpy[self.pitch_idx] -= self.drot
 
     def roll_inc(self):
-        new_val = get_rpy_component(self.main_pose, self.roll_idx) + self.drot
-        set_rpy_component(self.main_pose, self.roll_idx, new_val)
+        self.main_rpy[self.roll_idx] += self.drot
 
     def roll_dec(self):
-        new_val = get_rpy_component(self.main_pose, self.roll_idx) - self.drot
-        set_rpy_component(self.main_pose, self.roll_idx, new_val)
+        self.main_rpy[self.roll_idx] -= self.drot
 
     def print_keymap(self):
         pass
@@ -133,7 +139,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    tele = KeyboardTeleop(is_local=args.local, network_interface=args.network_interface, is_left=True)
+    tele = KeyboardTeleop(is_local=args.local, network_interface=args.network_interface, is_left=False)
     tele.run_teleop()
 
 if __name__ == '__main__':

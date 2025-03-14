@@ -107,7 +107,6 @@ class SynchronousController:
             targets (dict): Keys are joint indeces to write, 
                 values are pairs of target values (q, dq)
         """
-        print(self.low_state.motor_state[G1JointIndex.LeftWristRoll].q)
         # enable arm sdk
         self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = 1 # 1:Enable arm_sdk, 0:Disable arm_sdk
 
