@@ -9,22 +9,17 @@ from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
 from unitree_sdk2py.utils.crc import CRC
 from arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
-# command_topic = "rt/lowcmd"
-command_topic = "rt/arm_sdk"
-
-
-
 class SynchronousController:
 
-    def __init__(self, output_interface:str=None, in_local:bool=False):
+    def __init__(self, network_interface:str=None, is_in_local:bool=False, command_topic="rt/arm_sdk"):
         """Initializes a controller
 
         Args:
-            output_interface (str, optional): Specifies which hardware interface
+            network_interface (str, optional): Specifies which hardware interface
                 is used to transfer commands. 
                 SELECTED HARDWARE INTERFACE IS RECOMMENDED TO HAVE IP 192.168.123.99
                 Defaults to None.
-            in_local (bool, optional): 
+            is_in_local (bool, optional): 
                 Used to indicate that robot runs in a simulation. 
                 Used only for ChannelFactoryInitialize(1, "lo").
                 Defaults to False.
@@ -58,12 +53,12 @@ class SynchronousController:
             G1JointIndex.WaistPitch
         ]
 
-        if in_local:
+        if is_in_local:
             self.log('initializing for local')
             ChannelFactoryInitialize(1, "lo")
-        elif output_interface != None:
-            self.log(f'initalizing with {output_interface} as interface')
-            ChannelFactoryInitialize(0, output_interface)
+        elif network_interface != None:
+            self.log(f'initalizing with {network_interface} as interface')
+            ChannelFactoryInitialize(0, network_interface)
         else:
             self.log('initalizing without interface')
             ChannelFactoryInitialize(0)
@@ -177,7 +172,7 @@ class SynchronousController:
         return left + right
 
 def main():
-    controller = SynchronousController(in_local=True)
+    controller = SynchronousController(is_in_local=True)
 
 if __name__ == '__main__':
     main()
