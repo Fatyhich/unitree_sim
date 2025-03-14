@@ -70,9 +70,9 @@ class SynchronousController:
             self.log('initalizing without interface')
             ChannelFactoryInitialize(0)
 
-        self.Init()
+        self.__Init()
 
-    def Init(self):
+    def __Init(self):
 
         # create publisher #
         self.arm_sdk_publisher = ChannelPublisher(self.command_topic, LowCmd_)
@@ -100,7 +100,7 @@ class SynchronousController:
         if self.first_update_low_state == False:
             self.first_update_low_state = True
 
-    def SetCommand(self, targets:dict):
+    def __SetCommand(self, targets:dict):
         """Contstructs command for all specified joints.
 
         Args:
@@ -144,7 +144,7 @@ class SynchronousController:
         self.low_cmd.motor_cmd[G1JointIndex.WaistYaw].kp = self.waist_kp
         self.low_cmd.motor_cmd[G1JointIndex.WaistYaw].kd = self.waist_kd
 
-    def PublishCommand(self):
+    def __PublishCommand(self):
         """Sends command to it's topic
         """
         self.low_cmd.crc = self.crc.Crc(self.low_cmd)
@@ -158,24 +158,24 @@ class SynchronousController:
             targets (dict): Keys are joint indeces, 
                 values are pairs of joint position and velocity (q, dq)
         """
-        self.SetCommand(targets)
-        self.PublishCommand()
+        self.__SetCommand(targets)
+        self.__PublishCommand()
 
-    def GetLeftJoints(self):
+    def _GetLeftJoints(self):
         result = []
         for joint in  G1JointLeftArmIndex:
             result.append(self.low_state.motor_state[joint].q)
         return result
 
-    def GetRightJoints(self):
+    def _GetRightJoints(self):
         result = []
         for joint in G1JointRightArmIndex:
             result.append(self.low_state.motor_state[joint].q)
         return result
     
-    def GetJointStates(self):
-        left = self.GetLeftJoints()
-        right = self.GetRightJoints()
+    def _GetJointStates(self):
+        left = self._GetLeftJoints()
+        right = self._GetRightJoints()
         return left + right
 
 def main():

@@ -20,10 +20,10 @@ sys.path.append(parent2_dir)
 class ArmKinematics:
 
     def __init__(self):
-        self.build_models()
-        self.create_casadi_problem()
+        self.__build_models()
+        self.__create_casadi_problem()
 
-    def build_models(self):
+    def __build_models(self):
 
         # build model from files
         self.robot = pin.RobotWrapper.BuildFromURDF(
@@ -60,7 +60,7 @@ class ArmKinematics:
         # pin.updateFramePlacements(self.reduced_robot.model, self.reduced_robot.data)
 
 
-    def create_casadi_problem(self):
+    def __create_casadi_problem(self):
         
         # Creating Casadi models and data for symbolic computing
         self.cmodel = cpin.Model(self.reduced_robot.model)
@@ -131,7 +131,7 @@ class ArmKinematics:
         # self.smooth_filter = WeightedMovingFilter(np.array([0.4, 0.3, 0.2, 0.1]), 14)
         self.vis = None
 
-    def get_forward_kinematics(self, q):
+    def _get_forward_kinematics(self, q):
 
         # Compute the forward kinematics
         pin.forwardKinematics(self.reduced_robot.model, self.reduced_robot.data, q)
@@ -150,7 +150,7 @@ class ArmKinematics:
 
         return l_ee_placement, r_ee_placement
 
-    def solve_ik(self, l_wrist_target, r_wrist_target, current_lr_arm_motor_q = None, current_lr_arm_motor_dq = None):
+    def _solve_ik(self, l_wrist_target, r_wrist_target, current_lr_arm_motor_q = None, current_lr_arm_motor_dq = None):
         if current_lr_arm_motor_q is not None:
             self.init_data = current_lr_arm_motor_q
         self.opti.set_initial(self.var_q, self.init_data)

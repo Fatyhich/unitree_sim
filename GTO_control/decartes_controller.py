@@ -26,10 +26,10 @@ class DecartesController(SynchronousController):
     def go_to(self, l_tf_homo, r_tf_homo):
 
         # get initial guess
-        init_guess = np.asarray(self.GetJointStates())
+        init_guess = np.asarray(self._GetJointStates())
 
         # solve inverse kinematics
-        target_q = self.arm.solve_ik(
+        target_q = self.arm._solve_ik(
             l_wrist_target=l_tf_homo, 
             r_wrist_target=r_tf_homo, 
             current_lr_arm_motor_q=init_guess
@@ -42,11 +42,6 @@ class DecartesController(SynchronousController):
         self.ExecuteCommand(msg)
         
     def get_ee_poses(self):
-        states = np.asarray(self.GetJointStates())
-        l_pose, r_pose = self.arm.get_forward_kinematics(states)
+        states = np.asarray(self._GetJointStates())
+        l_pose, r_pose = self.arm._get_forward_kinematics(states)
         return l_pose, r_pose
-
-    def get_ee_poses_homo(self):
-        states = np.array(self.GetJointStates())
-        l_pose, r_pose = self.arm.get_forward_kinematics(states)
-        return l_pose.homogeneous, r_pose.homogeneous
