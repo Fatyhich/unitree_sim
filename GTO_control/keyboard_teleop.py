@@ -139,7 +139,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    tele = KeyboardTeleop(is_local=args.local, network_interface=args.network_interface, is_left=False)
+    tele = KeyboardTeleop(is_local=args.local, network_interface=args.network_interface, is_left=True)
     tele.run_teleop()
 
 if __name__ == '__main__':

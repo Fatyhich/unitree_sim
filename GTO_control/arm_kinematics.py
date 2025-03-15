@@ -27,8 +27,8 @@ class ArmKinematics:
 
         # build model from files
         self.robot = pin.RobotWrapper.BuildFromURDF(
-            '/home/oversir/humanoid_wp/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
-            '/home/oversir/humanoid_wp/avp_teleoperate/assets/g1/'
+            '/home/oversir/humanoid_wp/GTO_control/assets/g1_body29_hand14.urdf',
+            '/home/oversir/humanoid_wp/GTO_control/assets/'
         )
 
         # reduce model to arm only
