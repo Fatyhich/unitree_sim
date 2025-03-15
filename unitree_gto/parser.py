@@ -29,6 +29,81 @@ class Parser:
         self.plot_dir = plot_dir or self.script_dir / "data" / "plots"
         self.trajectory_data = None
     
+    def __iter__(self):
+        """
+        Make the Parser class iterable.
+        Returns one row of trajectory data at a time.
+        
+        Each iteration returns a dictionary with all data for a single timestep.
+        """
+        if self.trajectory_data is None:
+            print("No trajectory data to iterate. Call parse_trajectory_file() first.")
+            return
+            
+        self._iter_index = 0
+        self._iter_max = len(self.trajectory_data['times'])
+        return self
+    
+    def __next__(self):
+        """Return the next item in the iteration."""
+        if self._iter_index >= self._iter_max:
+            raise StopIteration
+            
+        # Create a dictionary with data for the current timestep
+        row_data = {
+            'time': self.trajectory_data['times'][self._iter_index],
+            'elbow_position': self.trajectory_data['elbow_positions'][self._iter_index],
+            'elbow_velocity': self.trajectory_data['elbow_velocities'][self._iter_index],
+            'wrist_position': self.trajectory_data['wrist_positions'][self._iter_index],
+            'wrist_position_velocity': self.trajectory_data['wrist_pos_velocities'][self._iter_index],
+            'wrist_orientation': self.trajectory_data['wrist_orientations'][self._iter_index],
+            'wrist_orientation_velocity': self.trajectory_data['wrist_orient_velocities'][self._iter_index]
+        }
+        
+        self._iter_index += 1
+        return row_data
+    
+    def get_batch(self, batch_size=1, start_idx=None):
+        """
+        Get a batch of trajectory data.
+        
+        Args:
+            batch_size (int): Number of sequential data points to include in the batch
+            start_idx (int, optional): Starting index. If None, a random valid index is chosen.
+            
+        Returns:
+            dict: Dictionary containing batched trajectory data
+        """
+        if self.trajectory_data is None:
+            print("No trajectory data available. Call parse_trajectory_file() first.")
+            return None
+            
+        data_length = len(self.trajectory_data['times'])
+        
+        if start_idx is None:
+            # Choose a random starting index that allows for a full batch
+            max_start = data_length - batch_size
+            if max_start < 0:
+                print(f"Warning: Requested batch size {batch_size} exceeds data length {data_length}")
+                batch_size = data_length
+                start_idx = 0
+            else:
+                start_idx = np.random.randint(0, max_start + 1)
+        
+        end_idx = min(start_idx + batch_size, data_length)
+        actual_batch_size = end_idx - start_idx
+        
+        # Create a batch dictionary
+        batch_data = {}
+        for key in self.trajectory_data:
+            batch_data[key] = self.trajectory_data[key][start_idx:end_idx]
+            
+        # Add metadata about the batch
+        batch_data['batch_start_idx'] = start_idx
+        batch_data['batch_size'] = actual_batch_size
+        
+        return batch_data
+    
     def parse_trajectory_file(self):
         """
         Parse the trajectory file and extract data.
@@ -54,12 +129,12 @@ class Parser:
         num_rows = len(values) // values_per_row
         
         # Reshape the values into rows
-        rows = []
+        self.rows = []
         for i in range(num_rows):
             start_idx = i * values_per_row
             end_idx = start_idx + values_per_row
             row = [float(val) for val in values[start_idx:end_idx]]
-            rows.append(row)
+            self.rows.append(row)
         
         # Extract data from rows
         times = []
@@ -67,12 +142,12 @@ class Parser:
         wrist_positions = []
         wrist_orientations = []
         
-        for row in rows:
+        for row in self.rows:
             if len(row) < values_per_row:
                 print(f"Warning: Row has fewer than {values_per_row} values: {row}")
                 continue
                 
-            time = 0.02
+            time = row[0]
             
             # Elbow: xyz (positions 1-3), ypr are zeros (positions 4-6)
             elbow_pos = row[1:4]
@@ -118,9 +193,9 @@ class Parser:
         for i in range(1, len(times)):
             dt = times[i] - times[i-1]
             if dt > 0:
-                elbow_velocities[i] = (elbow_positions[i] - elbow_positions[i-1]) / dt
-                wrist_pos_velocities[i] = (wrist_positions[i] - wrist_positions[i-1]) / dt
-                wrist_orient_velocities[i] = (wrist_orientations[i] - wrist_orientations[i-1]) / dt
+                elbow_velocities[i] = np.round((elbow_positions[i] - elbow_positions[i-1]) / dt, 5)
+                wrist_pos_velocities[i] = np.round((wrist_positions[i] - wrist_positions[i-1]) / dt, 5)
+                wrist_orient_velocities[i] = np.round((wrist_orientations[i] - wrist_orientations[i-1]) / dt, 5)
         
         # Store the data in a dictionary
         self.trajectory_data = {
@@ -146,8 +221,7 @@ class Parser:
             return False
         
         data = {
-            'Time': self.trajectory_data['times'],
-            'TimeDelta': self.trajectory_data['time_deltas'],
+            'Time': self.trajectory_data['times']
         }
         
         # Add elbow position and velocity data
@@ -308,7 +382,7 @@ class Parser:
         self.parse_trajectory_file()
         
         self.save_to_csv()
-        self.plot_trajectory()
+        # self.plot_trajectory()
         
         print("Processing complete!")
         return self.trajectory_data
@@ -317,7 +391,18 @@ class Parser:
 def main():
     """Main function to run the parser."""
     parser = Parser()
-    parser.process()
+    parser.parse_trajectory_file()
+
+    # Использование в цикле for
+    for i, row in enumerate(parser):
+        print(f"Timestep {i}:")
+        print(f"  Time: {row['time']}")
+        print(f"  Elbow position: {row['elbow_position']}")
+        print(f"  Wrist position: {row['wrist_position']}")
+        
+        # Остановим цикл после 5 элементов
+        if i >= 4:
+            break
 
 
 if __name__ == "__main__":
