@@ -3,10 +3,13 @@ import argparse
 from getch import getch
 from testing import smooth_bringup
 
-from decartes_controller import DecartesController
+# from decartes_controller import DecartesController
+from split_decartes_controller import DecartesController
 from arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
 from utils import get_rpy_component, set_rpy_component
+
+DEBUG = True
 
 class KeyboardTeleop:
 
@@ -35,6 +38,15 @@ class KeyboardTeleop:
         print(right_pose[0])
         print('poses intialized')
 
+        states = np.asarray(self.controller._GetJointStates())
+        print('fk')
+        print(self.controller.l_arm._get_forward_kinematics(states[:7]))
+
+        # exit(0)
+
+        if DEBUG:
+            pass
+
         self.is_left = is_left
         if is_left:
             self.main_xyz = left_pose[0]
@@ -62,12 +74,16 @@ class KeyboardTeleop:
             'l' : self.pitch_inc,
             'j' : self.pitch_dec,
             'o' : self.yaw_inc,
-            'u' : self.yaw_dec
-
-
+            'u' : self.yaw_dec,
         }
 
     def update(self):
+        print('left pose:')
+        print('xyz: ', self.main_xyz)
+        print('rpy: ', self.main_rpy)
+        print('righ pose:')
+        print('xyz: ', self.off_xyz)
+        print('rpy: ', self.off_rpy)
         if self.is_left:
             self.controller.go_to(self.main_xyz, self.main_rpy, self.off_xyz, self.off_rpy)
         else:
@@ -75,23 +91,18 @@ class KeyboardTeleop:
 
     # translation actions
     def up(self):
-        print("up")
         self.main_xyz[2] += self.dpos
 
     def down(self):
-        print("down")
         self.main_xyz[2] -= self.dpos
 
     def left(self):
-        print("left")
         self.main_xyz[1] += self.dpos
 
     def right(self):
-        print("right")
         self.main_xyz[1] -= self.dpos
 
     def forward(self):
-        print("fwd")
         self.main_xyz[0] += self.dpos
 
     def backward(self):
@@ -124,6 +135,8 @@ class KeyboardTeleop:
         cur_cmd = '~'
         while cur_cmd != '-':
             cur_cmd = getch()
+            if cur_cmd == ' ':
+                smooth_bringup(self.controller)
             if not cur_cmd in self.keymap.keys():
                 print(f'unknown command: {cur_cmd}') 
             self.keymap[cur_cmd]()
