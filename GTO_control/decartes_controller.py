@@ -28,7 +28,7 @@ class DecartesController(SynchronousController):
         log(self, 'Initializin Arm Kinematix')
         self.arm = ArmKinematics()
 
-    def go_to(self, l_pos, l_rpy, r_pos, r_rpy):
+    def go_to(self, l_pos=None, l_rpy=None, r_pos=None, r_rpy=None):
         # convert to SE3
         l_pose = SE3_from_xyz_rpy(l_pos, l_rpy)
         r_pose = SE3_from_xyz_rpy(r_pos, r_rpy)
