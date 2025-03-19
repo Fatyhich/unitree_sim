@@ -13,6 +13,7 @@ from arm_definitions import NON_ARM_JOINTS, RIGHT_ARM_JOINTS, LEFT_ARM_JOINTS
 
 parent2_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(parent2_dir)
+pwd = os.getcwd()
 
 # from teleop.utils.weighted_moving_filter import WeightedMovingFilter
 
@@ -28,8 +29,8 @@ class SingleArmKinematics:
 
         # build model from files
         self.robot = pin.RobotWrapper.BuildFromURDF(
-            '/home/oversir/humanoid_wp/GTO_control/assets/g1_body29_hand14.urdf',
-            '/home/oversir/humanoid_wp/GTO_control/assets/'
+            pwd + '/GTO_control/assets/g1_body29_hand14.urdf',
+            pwd + '/GTO_control/assets/'
         )
 
         other_arm = None
@@ -45,24 +46,67 @@ class SingleArmKinematics:
         )
 
         # if arm is left add left frame
+        self.ee_frame_name = 'EE_frame'
+        self.elbow_frame_name = 'elbow_frame'
+        self.shoulder_frame_name = 'shoulder_frame'
         if self.is_left:
             # add left wrist frame
             self.reduced_robot.model.addFrame(
-                pin.Frame('EE_frame',
+                pin.Frame(self.ee_frame_name,
                           self.reduced_robot.model.getJointId('left_wrist_yaw_joint'),
                           pin.SE3(np.eye(3),
                                   np.array([0.05,0,0]).T),
                           pin.FrameType.OP_FRAME)
             )
+            # add left elbow frame
+            self.reduced_robot.model.addFrame(
+                pin.Frame(
+                    self.elbow_frame_name,
+                    self.reduced_robot.model.getJointId('left_elbow_joint'),
+                    pin.SE3(np.eye(3),
+                            np.array([0.05,0,0]).T),
+                    pin.FrameType.OP_FRAME
+                )
+            )
+            # add left shoulder frame
+            self.reduced_robot.model.addFrame(
+                pin.Frame(
+                    self.shoulder_frame_name,
+                    self.reduced_robot.model.getJointId('left_shoulder_pitch_joint'),
+                    pin.SE3(np.eye(3),
+                            np.array([0.05,0,0]).T),
+                    pin.FrameType.OP_FRAME
+                )
+            )
         # if arm is not left, add right frame
         else:
             # add right wrist frame
             self.reduced_robot.model.addFrame(
-                pin.Frame('EE_frame',
+                pin.Frame(self.ee_frame_name,
                           self.reduced_robot.model.getJointId('right_wrist_yaw_joint'),
                           pin.SE3(np.eye(3),
                                   np.array([0.05,0,0]).T),
                           pin.FrameType.OP_FRAME)
+            )
+            # add right elbow frame
+            self.reduced_robot.model.addFrame(
+                pin.Frame(
+                    self.elbow_frame_name,
+                    self.reduced_robot.model.getJointId('right_elbow_joint'),
+                    pin.SE3(np.eye(3),
+                            np.array([0.05,0,0]).T),
+                    pin.FrameType.OP_FRAME
+                )
+            )
+            # add right shoulder frame
+            self.reduced_robot.model.addFrame(
+                pin.Frame(
+                    self.shoulder_frame_name,
+                    self.reduced_robot.model.getJointId('right_shoulder_pitch_joint'),
+                    pin.SE3(np.eye(3),
+                            np.array([0.05,0,0]).T),
+                    pin.FrameType.OP_FRAME
+                )
             )
 
         self.reduced_robot.data = pin.Data(self.reduced_robot.model)
@@ -82,7 +126,7 @@ class SingleArmKinematics:
         cpin.framesForwardKinematics(self.cmodel, self.cdata, self.cq)
 
         # Get the hand joint ID and define the error function
-        self.EE_id = self.reduced_robot.model.getFrameId("EE_frame")
+        self.EE_id = self.reduced_robot.model.getFrameId(self.ee_frame_name)
 
         self.translational_error = casadi.Function(
             "translational_error",
@@ -145,13 +189,38 @@ class SingleArmKinematics:
         pin.updateFramePlacements(self.reduced_robot.model, self.reduced_robot.data)
 
         # Get the index of the left and right end - effector frames
-        ee_index = self.reduced_robot.model.getFrameId("EE_frame", pin.FrameType.OP_FRAME)
+        ee_index = self.reduced_robot.model.getFrameId(self.ee_frame_name, pin.FrameType.OP_FRAME)
 
         # Retrieve the SE3 placement of the left and right end - effectors
         ee_placement = self.reduced_robot.data.oMf[ee_index]
 
 
         return ee_placement
+
+    def get_arm_points(self, q):
+        pin.forwardKinematics(self.reduced_robot.model, self.reduced_robot.data, q)
+
+        # update the frame placements
+        pin.updateFramePlacements(self.reduced_robot.model, self.reduced_robot.data)
+
+
+        # WRIST
+        # get the index of the end effector frames
+        ee_index = self.reduced_robot.model.getFrameId(self.ee_frame_name, pin.FrameType.OP_FRAME)
+        # get SE3 placement of the end - effector
+        ee_placement = self.reduced_robot.data.oMf[ee_index]
+
+        # ELBOW
+        # get elbow index
+        elbow_index = self.reduced_robot.model.getFrameId(self.elbow_frame_name, pin.FrameType.OP_FRAME)
+        # get elbow SE3 placement
+        elbow_placement  = self.reduced_robot.data.oMf[elbow_index]
+
+        # SHOULDER
+        # get shoulder index
+        shoulder_index = self.reduced_robot.model.getFrameId(self.shoulder_frame_name, pin.FrameType.OP_FRAME)
+        # get shoulder placement
+        shoulder_pose = self.reduced_robot.data.oMf[shoulder_index]
 
     def _solve_ik(self, wrist_target, current_arm_motor_q = None, current_arm_motor_dq = None):
         if current_arm_motor_q is not None:

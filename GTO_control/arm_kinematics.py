@@ -13,6 +13,7 @@ from arm_definitions import NON_ARM_JOINTS
 
 parent2_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(parent2_dir)
+pwd = os.getcwd()
 
 # from teleop.utils.weighted_moving_filter import WeightedMovingFilter
 
@@ -27,8 +28,8 @@ class ArmKinematics:
 
         # build model from files
         self.robot = pin.RobotWrapper.BuildFromURDF(
-            '/home/oversir/humanoid_wp/GTO_control/assets/g1_body29_hand14.urdf',
-            '/home/oversir/humanoid_wp/GTO_control/assets/'
+            pwd + '/GTO_control/assets/g1_body29_hand14.urdf',
+            pwd + '/GTO_control/assets/'
         )
 
         # reduce model to arm only
