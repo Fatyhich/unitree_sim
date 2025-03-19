@@ -46,7 +46,8 @@ echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/robotpkg.asc] http://robotpkg.
 #########################################
 # update and install pinocchio
 sudo apt update
-sudo apt install -qqy robotpkg-py3*-pinocchio
+sudo apt install -qqy "robotpkg-py3*-pinocchio"
+
 
 
 #########################################
@@ -58,6 +59,7 @@ export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:\$PKG_CONFIG_PATH
 export LD_LIBRARY_PATH=/opt/openrobots/lib:\$LD_LIBRARY_PATH
 export PYTHONPATH=/opt/openrobots/lib/python3.8/site-packages:\$PYTHONPATH
 export CMAKE_PREFIX_PATH=/opt/openrobots:\$CMAKE_PREFIX_PATH
+echo "export PATH=\$PATH:$PWD/unitree_sdk2_python" >> $startup_file
 EOF
 
 
