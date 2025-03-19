@@ -1,0 +1,76 @@
+# determine if current shell is bash or zsh
+cur_shell="$(readlink /proc/$$/exe | sed "s/.*\///")"
+startup_file=~/.bashrc
+if [[ "${cur_shell}" == "bash" ]]
+then
+	startup_file=~/.bashrc
+elif [[ "${cur_shell}" == "zsh" ]]
+then
+	startup_file=~/.zshrc
+else
+	echo "Sorry, i dont know your shell: $cur_shell"
+	echo "Only bash and zsh are supported"
+	exit 1
+fi
+
+echo "export PATH=\"\$PATH:$PWD/unitree_sdk2_python\"" >> $startup_file
+
+#########################################
+# update and install base dependencies
+sudo apt update
+sudo apt install -y \
+      wget \
+      curl \
+      sudo \
+      nano \
+      python3 \
+      python3-pip \
+      xorg \
+      x11-apps \
+      xserver-xorg-core \
+      git \
+      lsb-release 
+
+
+#########################################
+# Set up robotpkg repository
+sudo mkdir -p /etc/apt/keyrings
+
+curl http://robotpkg.openrobots.org/packages/debian/robotpkg.asc \
+    | sudo tee /etc/apt/keyrings/robotpkg.asc
+
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/robotpkg.asc] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" \
+    | sudo tee /etc/apt/sources.list.d/robotpkg.list
+      
+
+#########################################
+# update and install pinocchio
+sudo apt update
+sudo apt install -qqy robotpkg-py3*-pinocchio
+
+
+#########################################
+# Create a temporary file with the new environment variables
+cat << EOF > /tmp/robotpkg_env
+export PATH=/opt/openrobots/bin:\$PATH
+export PATH=\$HOME/.local/bin:\$PATH
+export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:\$PKG_CONFIG_PATH
+export LD_LIBRARY_PATH=/opt/openrobots/lib:\$LD_LIBRARY_PATH
+export PYTHONPATH=/opt/openrobots/lib/python3.8/site-packages:\$PYTHONPATH
+export CMAKE_PREFIX_PATH=/opt/openrobots:\$CMAKE_PREFIX_PATH
+EOF
+
+
+#########################################
+# Check if the environment variables are already in .bashrc
+if ! grep -q "# Robotpkg environment variables" $startup_file; then
+    echo -e "\n# Robotpkg environment variables" >> $startup_file
+    cat /tmp/robotpkg_env >> $startup_file
+fi
+
+
+#########################################
+# clena up
+rm /tmp/robotpkg_env
+
+echo "installation complete, restart terminal to apply changes"
