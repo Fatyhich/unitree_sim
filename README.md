@@ -28,6 +28,7 @@ To install all the python dependencies, just run:
 ```bash
 cd unitree_sdk2_python
 conda create -f python_deps.yaml
+conda activate unitree_sim_env
 python -m pip install -e .
 cd ..
 ```
