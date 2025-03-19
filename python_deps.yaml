@@ -31,6 +31,7 @@ dependencies:
   - zlib=1.2.13=h4ab18f5_6
   - pip:
     - casadi==3.6.7
+    - getch==1.0
     - matplotlib==3.7.5
     - meshcat==0.3.2
     - mujoco==3.2.3
