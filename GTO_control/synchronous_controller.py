@@ -9,6 +9,22 @@ from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
 from unitree_sdk2py.utils.crc import CRC
 from arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
+Kp = [
+    60, 60, 60, 100, 40, 40,      # legs
+    60, 60, 60, 100, 40, 40,      # legs
+    60, 40, 40,                   # waist
+    40, 40, 40, 40,  40, 40, 40,  # arms
+    40, 40, 40, 40,  40, 40, 40   # arms
+]
+
+Kd = [
+    1, 1, 1, 2, 1, 1,     # legs
+    1, 1, 1, 2, 1, 1,     # legs
+    1, 1, 1,              # waist
+    1, 1, 1, 1, 1, 1, 1,  # arms
+    1, 1, 1, 1, 1, 1, 1   # arms 
+]
+
 class SynchronousController:
 
     def __init__(self, network_interface:str=None, is_in_local:bool=False, command_topic="rt/arm_sdk"):
@@ -130,8 +146,8 @@ class SynchronousController:
             
             # set all joints kp and kd to default
             # to avoid if, waist kp and kd are set later
-            self.low_cmd.motor_cmd[joint].kp = self.kp
-            self.low_cmd.motor_cmd[joint].kd = self.kd
+            self.low_cmd.motor_cmd[joint].kp = Kp[idx]
+            self.low_cmd.motor_cmd[joint].kd = Kd[idx]
         
         # set kp and kd for waist roll
         self.low_cmd.motor_cmd[G1JointIndex.WaistRoll].kp = self.waist_kp
