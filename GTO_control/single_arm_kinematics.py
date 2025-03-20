@@ -195,6 +195,11 @@ class SingleArmKinematics:
         ee_placement = self.reduced_robot.data.oMf[ee_index]
 
 
+        shoulder_idx = self.reduced_robot.model.getFrameId(self.shoulder_frame_name, pin.FrameType.OP_FRAME)
+        shoulder_placement = self.reduced_robot.data.oMf[shoulder_idx]
+        print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCcc')
+        print(shoulder_placement)
+
         return ee_placement
 
     def get_arm_points(self, q):

@@ -64,6 +64,9 @@ class DecartesController(SynchronousController):
         
     def get_ee_xyzrpy(self):
         l_pose, r_pose = self.get_ee_poses()
+        print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa')
+        print(l_pose)
+        print(r_pose)
 
         l_xyz = l_pose.translation
         r_xyz = r_pose.translation

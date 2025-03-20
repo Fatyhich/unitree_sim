@@ -3,6 +3,7 @@ import pinocchio as pin
 from getch import getch
 from split_decartes_controller import DecartesController
 import argparse
+from testing import smooth_bringup
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -19,10 +20,11 @@ def main():
     csv_parser.parse_trajectory_file(transform=False)
 
     controller = DecartesController(network_interface=args.network_interface, is_in_local=args.local)
+    smooth_bringup(controller)
 
     counter = 0
     for line_num, line in enumerate(csv_parser):
-        wrist_pos = line['wrist_position']
+        wrist_pos = line['wrist_position'] * 0.412
         writst_rot = line['wrist_orientation']
 
         print('target: ')
@@ -30,6 +32,13 @@ def main():
         print('rpy: ', writst_rot)
         print('press any key to exec')
         (l_xyz, l_rpy), (r_xyz, r_rpy) = controller.get_ee_xyzrpy()
+        print('left: ')
+        print(l_xyz)
+        print(l_rpy)
+        print('right: ')
+        print(r_xyz)
+        print(r_rpy)
+
         getch()
         
         controller.go_to(

@@ -196,6 +196,9 @@ class SynchronousController:
     def _GetJointStates(self):
         left = self._GetLeftJoints()
         right = self._GetRightJoints()
+        print('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB')
+        print(left)
+        print(right)
         return left + right
 
 def main():
