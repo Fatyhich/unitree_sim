@@ -57,7 +57,7 @@ pip install \
     pygame \
     casadi \
     meshcat \
-    numpy \
+    numpy==1.25 \
     matplotlib \
     getch
 
