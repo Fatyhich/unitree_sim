@@ -42,7 +42,7 @@ class SingleArmKinematics:
         # reduce model to arm only
         self.reduced_robot = self.robot.buildReducedRobot(
             list_of_joints_to_lock=NON_ARM_JOINTS + other_arm,
-            reference_configuration=np.array([0.0] * self.robot.model.nq),
+            reference_configuration=np.zeros(self.robot.model.nq, float),
         )
 
         # if arm is left add left frame
