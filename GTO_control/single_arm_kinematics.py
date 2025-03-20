@@ -29,8 +29,8 @@ class SingleArmKinematics:
 
         # build model from files
         self.robot = pin.RobotWrapper.BuildFromURDF(
-            pwd + '/GTO_control/assets/g1_body29_hand14.urdf',
-            pwd + '/GTO_control/assets/'
+            pwd + '/assets/g1_body29_hand14.urdf',
+            pwd + '/assets/'
         )
 
         other_arm = None

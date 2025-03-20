@@ -28,6 +28,7 @@ class DecartesController(SynchronousController):
         log(self, 'Initializing Arm Kinematix')
         self.l_arm = SingleArmKinematics(is_left=True)
         self.r_arm = SingleArmKinematics(is_left=False)
+        print('Decartes Controller Initialized')
 
     def go_to(self, l_pos, l_rpy, r_pos, r_rpy):
         # convert to SE3
@@ -53,7 +54,7 @@ class DecartesController(SynchronousController):
             wrist_target=r_tf_homo, 
             current_arm_motor_q=r_init_guess
             )
-        
+
         # create message
         msg = construct_arm_message(np.concatenate((l_target_q, r_target_q)))
 

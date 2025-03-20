@@ -80,11 +80,11 @@ class G1JointIndex(IntEnum):
     
     # not used
     NotUsedJoint0 = 29
-    NotUsedJoint1 = 30
-    NotUsedJoint2 = 31
-    NotUsedJoint3 = 32
-    NotUsedJoint4 = 33
-    NotUsedJoint5 = 34
+    # NotUsedJoint1 = 30
+    # NotUsedJoint2 = 31
+    # NotUsedJoint3 = 32
+    # NotUsedJoint4 = 33
+    # NotUsedJoint5 = 34
 
 ALL_JOINTS = [
     "left_hip_pitch_joint" ,

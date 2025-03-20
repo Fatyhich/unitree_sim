@@ -59,8 +59,6 @@ class KeyboardTeleop:
             self.main_xyz = right_pose[0]
             self.main_rpy = right_pose[1]
 
-        self.update()
-
         # create keymap
         self.keymap = {
             'e' : self.forward,
@@ -75,6 +73,7 @@ class KeyboardTeleop:
             'j' : self.pitch_dec,
             'o' : self.yaw_inc,
             'u' : self.yaw_dec,
+            'g' : self.get_joint_states
         }
 
     def update(self):
@@ -88,6 +87,15 @@ class KeyboardTeleop:
             self.controller.go_to(self.main_xyz, self.main_rpy, self.off_xyz, self.off_rpy)
         else:
             self.controller.go_to(self.off_xyz, self.off_rpy, self.main_xyz, self.main_rpy)
+
+    def get_joint_states(self):
+        states = self.controller._GetJointStates()
+        print('left: ')
+        print(states[:7])
+        print('right: ')
+        print(states[7:])
+        print('----------------')
+        print()
 
     # translation actions
     def up(self):
@@ -139,7 +147,10 @@ class KeyboardTeleop:
                 smooth_bringup(self.controller)
             if not cur_cmd in self.keymap.keys():
                 print(f'unknown command: {cur_cmd}') 
+                continue
             self.keymap[cur_cmd]()
+            if cur_cmd == 'g':
+                continue
             self.update()
             
 

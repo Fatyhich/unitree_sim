@@ -14,7 +14,8 @@ Kp = [
     60, 60, 60, 100, 40, 40,      # legs
     60, 40, 40,                   # waist
     40, 40, 40, 40,  40, 40, 40,  # arms
-    40, 40, 40, 40,  40, 40, 40   # arms
+    40, 40, 40, 40,  40, 40, 40,  # arms
+    0                             # not used joint
 ]
 
 Kd = [
@@ -22,7 +23,8 @@ Kd = [
     1, 1, 1, 2, 1, 1,     # legs
     1, 1, 1,              # waist
     1, 1, 1, 1, 1, 1, 1,  # arms
-    1, 1, 1, 1, 1, 1, 1   # arms 
+    1, 1, 1, 1, 1, 1, 1,  # arms 
+    0                     # not used joint
 ]
 
 class SynchronousController:
@@ -79,6 +81,7 @@ class SynchronousController:
         if is_in_local:
             self.log('initializing for local')
             ChannelFactoryInitialize(1, "lo")
+            self.command_topic = "rt/lowcmd"
         elif network_interface != None:
             self.log(f'initalizing with {network_interface} as interface')
             ChannelFactoryInitialize(0, network_interface)
@@ -127,7 +130,7 @@ class SynchronousController:
         self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = 1 # 1:Enable arm_sdk, 0:Disable arm_sdk
 
         # create command
-        for idx, joint in enumerate(self.arm_joints):
+        for idx, joint in enumerate(G1JointIndex):
             self.low_cmd.motor_cmd[joint].mode = 1
             # set tau to zero
             self.low_cmd.motor_cmd[joint].tau = 0.
@@ -149,22 +152,24 @@ class SynchronousController:
             self.low_cmd.motor_cmd[joint].kp = Kp[idx]
             self.low_cmd.motor_cmd[joint].kd = Kd[idx]
         
-        # set kp and kd for waist roll
-        self.low_cmd.motor_cmd[G1JointIndex.WaistRoll].kp = self.waist_kp
-        self.low_cmd.motor_cmd[G1JointIndex.WaistRoll].kd = self.waist_kd
-        # and for waist pitch motor
-        self.low_cmd.motor_cmd[G1JointIndex.WaistPitch].kp = self.waist_kp
-        self.low_cmd.motor_cmd[G1JointIndex.WaistPitch].kd = self.waist_kd
-        # and for waist yaw
-        self.low_cmd.motor_cmd[G1JointIndex.WaistYaw].kp = self.waist_kp
-        self.low_cmd.motor_cmd[G1JointIndex.WaistYaw].kd = self.waist_kd
+        self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = 0 # 1:Enable arm_sdk, 0:Disable arm_sdk
+        
+        # # set kp and kd for waist roll
+        # self.low_cmd.motor_cmd[G1JointIndex.WaistRoll].kp = self.waist_kp
+        # self.low_cmd.motor_cmd[G1JointIndex.WaistRoll].kd = self.waist_kd
+        # # and for waist pitch motor
+        # self.low_cmd.motor_cmd[G1JointIndex.WaistPitch].kp = self.waist_kp
+        # self.low_cmd.motor_cmd[G1JointIndex.WaistPitch].kd = self.waist_kd
+        # # and for waist yaw
+        # self.low_cmd.motor_cmd[G1JointIndex.WaistYaw].kp = self.waist_kp
+        # self.low_cmd.motor_cmd[G1JointIndex.WaistYaw].kd = self.waist_kd
 
     def __PublishCommand(self):
         """Sends command to it's topic
         """
         self.low_cmd.crc = self.crc.Crc(self.low_cmd)
         self.arm_sdk_publisher.Write(self.low_cmd)
-        self.log("Command published")
+        # self.log("Command published")
 
     def ExecuteCommand(self, targets:dict):
         """Executes given target velocities and positons for given joints.
