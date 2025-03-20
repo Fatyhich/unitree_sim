@@ -22,7 +22,8 @@ Source `ubuntu_install_deps.sh` to install environment.
 cd unitree_sim
 source ubuntu_install_deps.sh
 ```
-NOTE: For now only Zsh and Bash are supported.
+This script will install micromamba if it is not installed and create environment named `unitree_sim_env` that contains all the dependencies for running simulator and developing for G1.
+**NOTE: For now only Zsh and Bash are supported.**
 This command will install all system requirements for running the simulator and activate the corresponding python environment.
 
 ```
