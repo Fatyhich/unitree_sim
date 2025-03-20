@@ -1,6 +1,8 @@
-# determine if current shell is bash or zsh
+#########################################
+# determine current shell 
 cur_shell="$(readlink /proc/$$/exe | sed "s/.*\///")"
 startup_file=~/.bashrc
+# check if cur shell is bash or zsh
 if [[ "${cur_shell}" == "bash" ]]
 then
 	startup_file=~/.bashrc
@@ -14,6 +16,7 @@ else
 fi
 
 echo "export PATH=\"\$PATH:$PWD/unitree_sdk2_python\"" >> $startup_file
+
 
 #########################################
 # update and install base dependencies
@@ -33,6 +36,37 @@ sudo apt install -y \
 
 
 #########################################
+# install micromamba if it is not installed
+if ! command -v micromamba 2>&1 >/dev/null
+then
+    echo "Installing micromamba..."
+    "${SHELL}" <(curl -L micro.mamba.pm/install.sh)
+else
+    "Micromamba found!"
+fi
+
+# set up micromamba environment
+CONDA_ENV_NAME=unitree_sim_env
+micromamba create -n $CONDA_ENV_NAME
+micromamba activate $CONDA_ENV_NAME
+
+# install base dependencies
+micromamba install python==3.10
+pip install \
+    mujoco \
+    pygame \
+    casadi \
+    meshcat \
+    numpy \
+    matplotlib \
+    getch
+
+# install unitree sdk
+pushd unitree_sdk2_python
+pip install -e .
+popd >> /dev/null
+
+#########################################
 # Set up robotpkg repository
 sudo mkdir -p /etc/apt/keyrings
 
@@ -49,7 +83,6 @@ sudo apt update
 sudo apt install -qqy "robotpkg-py3*-pinocchio"
 
 
-
 #########################################
 # Create a temporary file with the new environment variables
 cat << EOF > /tmp/robotpkg_env
@@ -57,7 +90,7 @@ export PATH=/opt/openrobots/bin:\$PATH
 export PATH=\$HOME/.local/bin:\$PATH
 export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:\$PKG_CONFIG_PATH
 export LD_LIBRARY_PATH=/opt/openrobots/lib:\$LD_LIBRARY_PATH
-export PYTHONPATH=/opt/openrobots/lib/python3.8/site-packages:\$PYTHONPATH
+export PYTHONPATH=/opt/openrobots/lib/python3.10/site-packages:\$PYTHONPATH
 export CMAKE_PREFIX_PATH=/opt/openrobots:\$CMAKE_PREFIX_PATH
 echo "export PATH=\$PATH:$PWD/unitree_sdk2_python" >> $startup_file
 EOF
