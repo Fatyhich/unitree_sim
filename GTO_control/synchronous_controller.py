@@ -149,10 +149,10 @@ class SynchronousController:
             
             # set all joints kp and kd to default
             # to avoid if, waist kp and kd are set later
-            self.low_cmd.motor_cmd[joint].kp = Kp[idx]
-            self.low_cmd.motor_cmd[joint].kd = Kd[idx]
+            self.low_cmd.motor_cmd[joint].kp =  Kp[idx]
+            self.low_cmd.motor_cmd[joint].kd =  Kd[idx]
         
-        self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = 0 # 1:Enable arm_sdk, 0:Disable arm_sdk
+        self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = 1 # 1:Enable arm_sdk, 0:Disable arm_sdk
         
         # # set kp and kd for waist roll
         # self.low_cmd.motor_cmd[G1JointIndex.WaistRoll].kp = self.waist_kp
@@ -169,7 +169,7 @@ class SynchronousController:
         """
         self.low_cmd.crc = self.crc.Crc(self.low_cmd)
         self.arm_sdk_publisher.Write(self.low_cmd)
-        # self.log("Command published")
+        self.log("Command published")
 
     def ExecuteCommand(self, targets:dict):
         """Executes given target velocities and positons for given joints.
@@ -196,9 +196,6 @@ class SynchronousController:
     def _GetJointStates(self):
         left = self._GetLeftJoints()
         right = self._GetRightJoints()
-        print('BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB')
-        print(left)
-        print(right)
         return left + right
 
 def main():

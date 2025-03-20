@@ -21,7 +21,7 @@ pwd = os.getcwd()
 class SingleArmKinematics:
 
     def __init__(self, is_left=True):
-        self.is_left = True
+        self.is_left = is_left
         self.__build_models()
         self.__create_casadi_problem()
 
@@ -194,12 +194,6 @@ class SingleArmKinematics:
         # Retrieve the SE3 placement of the left and right end - effectors
         ee_placement = self.reduced_robot.data.oMf[ee_index]
 
-
-        shoulder_idx = self.reduced_robot.model.getFrameId(self.shoulder_frame_name, pin.FrameType.OP_FRAME)
-        shoulder_placement = self.reduced_robot.data.oMf[shoulder_idx]
-        print('CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCcc')
-        print(shoulder_placement)
-
         return ee_placement
 
     def get_arm_points(self, q):
@@ -213,19 +207,21 @@ class SingleArmKinematics:
         # get the index of the end effector frames
         ee_index = self.reduced_robot.model.getFrameId(self.ee_frame_name, pin.FrameType.OP_FRAME)
         # get SE3 placement of the end - effector
-        ee_placement = self.reduced_robot.data.oMf[ee_index]
+        ee_pos = self.reduced_robot.data.oMf[ee_index]
 
         # ELBOW
         # get elbow index
         elbow_index = self.reduced_robot.model.getFrameId(self.elbow_frame_name, pin.FrameType.OP_FRAME)
         # get elbow SE3 placement
-        elbow_placement  = self.reduced_robot.data.oMf[elbow_index]
+        elbow_pos  = self.reduced_robot.data.oMf[elbow_index]
 
         # SHOULDER
         # get shoulder index
         shoulder_index = self.reduced_robot.model.getFrameId(self.shoulder_frame_name, pin.FrameType.OP_FRAME)
         # get shoulder placement
         shoulder_pose = self.reduced_robot.data.oMf[shoulder_index]
+        
+        return shoulder_pose, elbow_pos, ee_pos
 
     def _solve_ik(self, wrist_target, current_arm_motor_q = None, current_arm_motor_dq = None):
         if current_arm_motor_q is not None:

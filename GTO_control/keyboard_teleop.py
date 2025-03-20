@@ -1,9 +1,8 @@
 import numpy as np
 import argparse
 from getch import getch
-from testing import smooth_bringup
+from utils import smooth_bringup
 
-# from decartes_controller import DecartesController
 from split_decartes_controller import DecartesController
 from arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
@@ -156,7 +155,7 @@ class KeyboardTeleop:
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l', '--local', help="specifies whether robot is being run in a simulator", action='store_true')
+    parser.add_argument('-l', '--local', help="specifies whether robot is being run in a simulator", action='store_true', default=False)
     parser.add_argument('-ni', '--network-interface', help='network interface for control output', required=False)
     args = parser.parse_args()
     return args
