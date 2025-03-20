@@ -10,33 +10,27 @@ Hello from Unitree sim
 - [Mujoco Doc](https://mujoco.readthedocs.io/en/stable/overview.html)
 
 # Installation
-## 1. System Dependencies
+## 0. Clone this repo
 Please clone this repo to your machine:
 ```bash
 git clone git@github.com:Fatyhich/unitree_sim.git
 ```
 
-Depending on your shell, execute `ubuntu_install_deps.sh`.
+## 1. System Dependencies And Environment
+Source `ubuntu_install_deps.sh` to install environment.
 ```bash
 cd unitree_sim
-zsh ubuntu_install_deps.sh
+source ubuntu_install_deps.sh
 ```
-This command will install all system requirements for running the simulator.
+NOTE: For now only Zsh and Bash are supported.
+This command will install all system requirements for running the simulator and activate the corresponding python environment.
 
-## 2. Python Dependencies
-To install all the python dependencies, just run:
-```bash
-cd unitree_sdk2_python
-conda create -f python_deps.yaml
-conda activate unitree_sim_env
-python -m pip install -e .
-cd ..
 ```
 
 ## 2. Starting Simulator
 ```bash
 sudo apt-get update & upgrade -y
 cd unitree_mujoco/simulate_python 
-python3 ./unitree_mujoco.py
+python ./unitree_mujoco.py
 ```
 As a marker of success, you will see a new window with the simulator and robot appear! 
