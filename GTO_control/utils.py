@@ -1,9 +1,7 @@
 import numpy as np
 from time import sleep
 import pinocchio as pin
-from synchronous_controller import SynchronousController
-
-from arm_definitions import G1JointArmIndex
+from arm_definitions import G1JointArmIndex, G1JointIndex
 
 def log(object, msg):
     print(f'[{type(object).__name__}] {msg}')
@@ -41,7 +39,11 @@ def set_rpy_component(tf, component_idx, new_value):
     tf.rotation = pin.rpy.rpyToMatrix(rpy)
     return tf
 
-def smooth_bringup(controller:SynchronousController, time=3.0, dt= 0.02):
+#########################
+#   CONTROLLER REGION   #
+#########################
+# from synchronous_controller import SynchronousController
+def smooth_bringup(controller, time=3.0, dt= 0.02):
     times = np.arange(0, time * 1.1, dt)
     for t in times:
         percentage = np.clip(t / time, 0., 1.)
@@ -57,7 +59,7 @@ def smooth_bringup(controller:SynchronousController, time=3.0, dt= 0.02):
         sleep(dt)
 
 def test_sine(
-        controller:SynchronousController, 
+        controller,
         total_time=10, 
         dt=0.02, 
         omega=np.pi/6,
