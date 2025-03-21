@@ -4,6 +4,7 @@ import numpy as np
 import pinocchio as pin                             
 import time
 from pinocchio import casadi as cpin
+from utils import SE3_from_xyz_rpy
 from pinocchio.robot_wrapper import RobotWrapper
 from pinocchio.visualize import MeshcatVisualizer
 import os
@@ -180,13 +181,15 @@ class SingleArmKinematics:
         # self.smooth_filter = WeightedMovingFilter(np.array([0.4, 0.3, 0.2, 0.1]), 14)
         self.vis = None
 
-    def _get_forward_kinematics(self, q):
-
+    def _update_forward_kinematics(self, q):
         # Compute the forward kinematics
         pin.forwardKinematics(self.reduced_robot.model, self.reduced_robot.data, q)
 
         # Update the frame placements
         pin.updateFramePlacements(self.reduced_robot.model, self.reduced_robot.data)
+
+    def get_ee_pose(self, q):
+        self._update_forward_kinematics(q)
 
         # Get the index of the left and right end - effector frames
         ee_index = self.reduced_robot.model.getFrameId(self.ee_frame_name, pin.FrameType.OP_FRAME)
@@ -196,32 +199,53 @@ class SingleArmKinematics:
 
         return ee_placement
 
+    def get_shoulder_pose(self, q):
+        self._update_forward_kinematics(q)
+        # get shoulder index
+        shoulder_index = self.reduced_robot.model.getFrameId(self.shoulder_frame_name, pin.FrameType.OP_FRAME)
+        # get shoulder placement
+        shoulder_pose = self.reduced_robot.data.oMf[shoulder_index]
+        return shoulder_pose
+
     def get_arm_points(self, q):
-        pin.forwardKinematics(self.reduced_robot.model, self.reduced_robot.data, q)
-
-        # update the frame placements
-        pin.updateFramePlacements(self.reduced_robot.model, self.reduced_robot.data)
-
-
         # WRIST
-        # get the index of the end effector frames
-        ee_index = self.reduced_robot.model.getFrameId(self.ee_frame_name, pin.FrameType.OP_FRAME)
-        # get SE3 placement of the end - effector
-        ee_pos = self.reduced_robot.data.oMf[ee_index]
+        ee_pose = self.get_ee_pose(q)
 
         # ELBOW
         # get elbow index
         elbow_index = self.reduced_robot.model.getFrameId(self.elbow_frame_name, pin.FrameType.OP_FRAME)
         # get elbow SE3 placement
-        elbow_pos  = self.reduced_robot.data.oMf[elbow_index]
+        elbow_pose = self.reduced_robot.data.oMf[elbow_index]
 
         # SHOULDER
-        # get shoulder index
-        shoulder_index = self.reduced_robot.model.getFrameId(self.shoulder_frame_name, pin.FrameType.OP_FRAME)
-        # get shoulder placement
-        shoulder_pose = self.reduced_robot.data.oMf[shoulder_index]
+        shoulder_pose = self.get_shoulder_pose(q)
         
-        return shoulder_pose, elbow_pos, ee_pos
+        return shoulder_pose, elbow_pose, ee_pose
+
+    def inverse_kinematics(self, xyz, rpy, current_motor_q=None, current_motor_dq=None):
+        wrist_target = SE3_from_xyz_rpy(xyz, rpy)
+        return self._solve_ik(
+            wrist_target=wrist_target.homogeneous,
+            current_arm_motor_q=current_motor_q,
+            current_arm_motor_dq=current_motor_dq
+            )
+
+    def inverse_kinematics_shoulder(self, xyz, rpy, current_motor_q=None, current_motor_dq=None):
+        # get shoulder position
+        shoulder_pose:pin.SE3 = self.get_shoulder_pose(np.zeros(7))
+
+        # convert xyz rpy to se3
+        target_pose = SE3_from_xyz_rpy(xyz, rpy)
+
+        # apply inverse transform
+        target_pose_shoulder = shoulder_pose.act(target_pose)
+
+        # solve ik for inverted
+        return self._solve_ik(
+            target_pose_shoulder.homogeneous, 
+            current_arm_motor_q=current_motor_q, 
+            current_arm_motor_dq=current_motor_dq
+        )
 
     def _solve_ik(self, wrist_target, current_arm_motor_q = None, current_arm_motor_dq = None):
         if current_arm_motor_q is not None:
