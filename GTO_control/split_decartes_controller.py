@@ -30,38 +30,30 @@ class DecartesController(SynchronousController):
         self.r_arm = SingleArmKinematics(is_left=False)
         print('Decartes Controller Initialized')
 
+    def get_initial_guess(self):
+        return np.asarray(self._GetLeftJoints()), np.asarray(self._GetRightJoints())
+
     def go_to(self, l_pos, l_rpy, r_pos, r_rpy):
-        # convert to SE3
-        l_pose = SE3_from_xyz_rpy(l_pos, l_rpy)
-        r_pose = SE3_from_xyz_rpy(r_pos, r_rpy)
-
-        self._go_to_homo(l_pose.homogeneous, r_pose.homogeneous)
-
-    def _go_to_homo(self, l_tf_homo, r_tf_homo):
-
         # get initial guess
-        l_init_guess = np.asarray(self._GetLeftJoints())
-        r_init_guess = np.asarray(self._GetRightJoints())
+        l_init_guess, r_init_guess = self.get_initial_guess()
 
-        # solve inverse kinematics for left 
-        l_target_q = self.l_arm._solve_ik(
-            wrist_target=l_tf_homo, 
-            current_arm_motor_q=l_init_guess
-            )
+        # calculate ik
+        l_target_q = self.l_arm.inverse_kinematics(
+            pos=l_pos,
+            rpy=l_rpy,
+            current_motor_q=l_init_guess
+        )
 
-        # solve inverse kinematics for right
-        r_target_q = self.r_arm._solve_ik(
-            wrist_target=r_tf_homo, 
-            current_arm_motor_q=r_init_guess
-            )
+        r_target_q = self.r_arm.inverse_kinematics(
+            pos=r_pos,
+            rpy=r_rpy,
+            current_motor_q=r_init_guess
+        )
 
-        # create message
         msg = construct_arm_message(np.concatenate((l_target_q, r_target_q)))
 
-        # execute command
         self.ExecuteCommand(msg)
 
-        
     def get_ee_xyzrpy(self):
         l_pose, r_pose = self.get_ee_poses()
 
@@ -75,6 +67,6 @@ class DecartesController(SynchronousController):
 
     def get_ee_poses(self):
         states = np.asarray(self._GetJointStates())
-        l_pose = self.l_arm._get_forward_kinematics(states[:7])
-        r_pose = self.r_arm._get_forward_kinematics(states[7:])
+        l_pose = self.l_arm.get_ee_pose(states[:7])
+        r_pose = self.r_arm.get_ee_pose(states[7:])
         return l_pose, r_pose

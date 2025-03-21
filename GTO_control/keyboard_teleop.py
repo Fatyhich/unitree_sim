@@ -39,7 +39,7 @@ class KeyboardTeleop:
 
         states = np.asarray(self.controller._GetJointStates())
         print('fk')
-        print(self.controller.l_arm._get_forward_kinematics(states[:7]))
+        print(self.controller.l_arm.get_ee_pose(states[:7]))
 
         # exit(0)
 
