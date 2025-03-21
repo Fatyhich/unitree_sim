@@ -39,13 +39,13 @@ class DecartesController(SynchronousController):
 
         # calculate ik
         l_target_q = self.l_arm.inverse_kinematics(
-            pos=l_pos,
+            xyz=l_pos,
             rpy=l_rpy,
             current_motor_q=l_init_guess
         )
 
         r_target_q = self.r_arm.inverse_kinematics(
-            pos=r_pos,
+            xyz=r_pos,
             rpy=r_rpy,
             current_motor_q=r_init_guess
         )
