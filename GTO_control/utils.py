@@ -43,7 +43,7 @@ def set_rpy_component(tf, component_idx, new_value):
 #   CONTROLLER REGION   #
 #########################
 # from synchronous_controller import SynchronousController
-def smooth_bringup(controller, time=3.0, dt= 0.02):
+def smooth_bringup(controller, time=2.0, dt= 0.02):
     times = np.arange(0, time * 1.1, dt)
     for t in times:
         percentage = np.clip(t / time, 0., 1.)

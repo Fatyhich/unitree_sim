@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from time import time
 import numpy as np
+import pinocchio as pin
 from single_arm_kinematics import SingleArmKinematics
 # from csv_parser import Parser
 
@@ -14,14 +15,18 @@ class KinematicsVisualizer():
         self.ax = self.fig.add_subplot(111, projection='3d')
 
         # set axis parameters
-        self.MAX_DIM = 1
+        self.MAX_DIM = 0.4
         self.X_CENTER = 0
         self.Y_CENTER = 0
         self.Z_CENTER = 0
 
+        self.pause = 0.5
+
         # create arrays for arm poses
         self.l_xyz = None
         self.r_xyz = None
+        self.l_rpy = None
+        self.r_rpy = None
         self.l_joints = np.zeros(7, float)
         self.r_joints = np.zeros(7, float)
         self.l_target = None
@@ -42,7 +47,45 @@ class KinematicsVisualizer():
         self.ax.set_ylim3d([-self.MAX_DIM + self.Y_CENTER, self.MAX_DIM + self.Y_CENTER])
         self.ax.set_zlim3d([-self.MAX_DIM + self.Z_CENTER, self.MAX_DIM + self.Z_CENTER])
 
-    def draw_arm(self, points_xyz, color=[0., 0., 1.], marker='o'):
+    def draw_axes(self, point, rpy, axes_len=0.05, axes_thickness=1, alternate_color=False):
+        red = [1, 0, 0]
+        green = [0, 1, 0]
+        blue = [0, 0, 1]
+        if alternate_color:
+            red = [1, 0, 1]
+            green = [0.3, 1, 0.3]
+            blue = [0, 1, 1]
+
+        # create rotation matirx
+        rotation_matrix = pin.rpy.rpyToMatrix(rpy) * axes_len
+        
+        x_axis = np.array([point, rotation_matrix[0] + point])
+        y_axis = np.array([point, rotation_matrix[1] + point])
+        z_axis = np.array([point, rotation_matrix[2] + point])
+
+        self.ax.plot(
+            xs=x_axis[:, 0],
+            ys=x_axis[:, 1],
+            zs=x_axis[:, 2],
+            color=red,
+            linewidth=axes_thickness
+        )
+        self.ax.plot(
+            xs=y_axis[:, 0],
+            ys=y_axis[:, 1],
+            zs=y_axis[:, 2],
+            color=green,
+            linewidth=axes_thickness
+        )
+        self.ax.plot(
+            xs=z_axis[:, 0], 
+            ys=z_axis[:, 1], 
+            zs=z_axis[:, 2], 
+            color=blue,
+            linewidth=axes_thickness
+        )
+
+    def draw_arm(self, points_xyz, points_rpy=None, color=[0., 0., 1.], marker='o'):
         n_points = len(points_xyz)
         x = points_xyz[:, 0]
         y = points_xyz[:, 1]
@@ -75,9 +118,18 @@ class KinematicsVisualizer():
             arrow_length_ratio=0.5
         )
 
-    def draw_target(self, xyz, color=[0, 0, 1], marker='x'):
-        if xyz is None:
+        if points_rpy is not None:
+            for xyz, rpy in zip(points_xyz, points_rpy):
+                self.draw_axes(xyz, rpy)
+
+
+    def draw_target(self, xyzrpy, color=[0, 0, 1], marker='x'):
+        if xyzrpy is None:
             return
+        
+        xyz = xyzrpy[0]
+        rpy = xyzrpy[1]
+
         self.ax.scatter(
             xs=xyz[0],
             ys=xyz[1],
@@ -87,18 +139,21 @@ class KinematicsVisualizer():
             s=70
         )
 
+        if rpy is not None:
+            self.draw_axes(xyz, rpy, alternate_color=True)
+
     def update_arms_viz(self):
         # clear everything
         self.ax.cla()
         # draw arms
-        self.draw_arm(self.l_xyz, color=[0, 0, 1])
-        self.draw_arm(self.r_xyz, color=[1, 0, 0])
+        self.draw_arm(self.l_xyz, points_rpy=self.l_rpy, color=[0, 0, 1])
+        self.draw_arm(self.r_xyz, points_rpy=self.r_rpy, color=[1, 0, 0])
         # draw targets
         self.draw_target(self.l_target, color=[0, 0, 1])
         self.draw_target(self.r_target, color=[1, 0, 0])
         # set axes
         self.set_axes()
-        plt.pause(0.01)
+        plt.pause(self.pause)
 
     def __get_arm_points_fk(self, left:bool):
         if left:
@@ -110,6 +165,10 @@ class KinematicsVisualizer():
             shoulder_pos.translation,
             elbow_pos.translation, 
             ee_pos.translation
+        ]), np.array([
+            pin.rpy.matrixToRpy(shoulder_pos.rotation),
+            pin.rpy.matrixToRpy(elbow_pos.rotation),
+            pin.rpy.matrixToRpy(ee_pos.rotation)
         ])
 
     def forward_kinematics(self, l_joints=None, r_joints=None, update=True):
@@ -119,11 +178,11 @@ class KinematicsVisualizer():
         
         if l_joints is not None:
             self.l_joints = l_joints
-            self.l_xyz = self.__get_arm_points_fk(left=True)
+            self.l_xyz, self.l_rpy = self.__get_arm_points_fk(left=True)
         
         if r_joints is not None:
             self.r_joints = r_joints
-            self.r_xyz = self.__get_arm_points_fk(left=False)
+            self.r_xyz, self.r_rpy = self.__get_arm_points_fk(left=False)
         if update:
             self.update_arms_viz()
         
@@ -146,7 +205,7 @@ class KinematicsVisualizer():
             print('WARN: UPDATING ARMS WITH NO TARGET POS. NOTHINg WILL BE DONE')
 
         if l_xyzrpy is not None:
-            self.l_target = l_xyzrpy[0]
+            self.l_target = l_xyzrpy
             l_ik = self.l_kinematics.inverse_kinematics(
                 xyz=l_xyzrpy[0],
                 rpy=l_xyzrpy[1],
@@ -155,7 +214,7 @@ class KinematicsVisualizer():
             self.l_joints = l_ik
 
         if r_xyzrpy is not None:
-            self.r_target = r_xyzrpy[0]
+            self.r_target = r_xyzrpy
             r_ik = self.r_kinematics.inverse_kinematics(
                 xyz = r_xyzrpy[0],
                 rpy = r_xyzrpy[1],
@@ -191,7 +250,8 @@ class KinematicsVisualizer():
             print('WARN: UPDATING ARMS WITH NO TARGET POS. NOTHINg WILL BE DONE')
 
         if l_xyzrpy is not None:
-            self.l_target = self.l_xyz[0] + l_xyzrpy[0]
+            self.l_target = np.array(l_xyzrpy)
+            self.l_target[0] += self.l_xyz[0]
             start = time()
             l_ik = self.l_kinematics.inverse_kinematics_shoulder(
                 xyz=l_xyzrpy[0],
@@ -203,7 +263,8 @@ class KinematicsVisualizer():
             self.l_joints = l_ik
 
         if r_xyzrpy is not None:
-            self.r_target = self.r_xyz[0] + r_xyzrpy[0]
+            self.r_target = np.array(r_xyzrpy)
+            self.r_target[0] += self.r_xyz[0]
             start = time()
             r_ik = self.r_kinematics.inverse_kinematics_shoulder(
                 xyz = r_xyzrpy[0],
@@ -231,7 +292,7 @@ def main():
     viz.forward_kinematics(r_joints=joints, l_joints=joints)
     viz.inverse_kinematics_shoulder(
         np.array(([0.5, 0, 0], [0, 0, 0.])),
-        np.array(([0.2, 0, 0], [0, 0, 0.]))
+        np.array(([0.3, -0.2, 0], [0, 0, np.pi/2.]))
     )
     plt.pause(-1)
 

@@ -56,7 +56,7 @@ class SingleArmKinematics:
                 pin.Frame(self.ee_frame_name,
                           self.reduced_robot.model.getJointId('left_wrist_yaw_joint'),
                           pin.SE3(np.eye(3),
-                                  np.array([0.05,0,0]).T),
+                                  np.array([0.0,0,0]).T),
                           pin.FrameType.OP_FRAME)
             )
             # add left elbow frame
@@ -65,7 +65,7 @@ class SingleArmKinematics:
                     self.elbow_frame_name,
                     self.reduced_robot.model.getJointId('left_elbow_joint'),
                     pin.SE3(np.eye(3),
-                            np.array([0.05,0,0]).T),
+                            np.array([0.0,0,0]).T),
                     pin.FrameType.OP_FRAME
                 )
             )
@@ -75,7 +75,7 @@ class SingleArmKinematics:
                     self.shoulder_frame_name,
                     self.reduced_robot.model.getJointId('left_shoulder_pitch_joint'),
                     pin.SE3(np.eye(3),
-                            np.array([0.05,0,0]).T),
+                            np.array([0.0,0,0]).T),
                     pin.FrameType.OP_FRAME
                 )
             )
@@ -86,7 +86,7 @@ class SingleArmKinematics:
                 pin.Frame(self.ee_frame_name,
                           self.reduced_robot.model.getJointId('right_wrist_yaw_joint'),
                           pin.SE3(np.eye(3),
-                                  np.array([0.05,0,0]).T),
+                                  np.array([0.0,0,0]).T),
                           pin.FrameType.OP_FRAME)
             )
             # add right elbow frame
@@ -95,7 +95,7 @@ class SingleArmKinematics:
                     self.elbow_frame_name,
                     self.reduced_robot.model.getJointId('right_elbow_joint'),
                     pin.SE3(np.eye(3),
-                            np.array([0.05,0,0]).T),
+                            np.array([0.0,0,0]).T),
                     pin.FrameType.OP_FRAME
                 )
             )
@@ -105,7 +105,7 @@ class SingleArmKinematics:
                     self.shoulder_frame_name,
                     self.reduced_robot.model.getJointId('right_shoulder_pitch_joint'),
                     pin.SE3(np.eye(3),
-                            np.array([0.05,0,0]).T),
+                            np.array([0.0,0,0]).T),
                     pin.FrameType.OP_FRAME
                 )
             )
