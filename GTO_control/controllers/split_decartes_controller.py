@@ -1,9 +1,9 @@
 import numpy as np
 
-from GTO_control.controllers.synchronous_controller import SynchronousController
-from GTO_control.kinematics.single_arm_kinematics import SingleArmKinematics
+from controllers.synchronous_controller import SynchronousController
+from kinematics.single_arm_kinematics import SingleArmKinematics
 
-from GTO_control.utils.utils import (
+from utils.utils import (
     log, 
     construct_arm_message,
     SE3_from_xyz_rpy,

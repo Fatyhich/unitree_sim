@@ -1,7 +1,7 @@
 import numpy as np
 from time import sleep
 import pinocchio as pin
-from GTO_control.utils.arm_definitions import G1JointArmIndex, G1JointIndex
+from utils.arm_definitions import G1JointArmIndex, G1JointIndex
 
 def log(object, msg):
     print(f'[{type(object).__name__}] {msg}')

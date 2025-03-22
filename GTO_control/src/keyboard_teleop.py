@@ -1,12 +1,12 @@
 import numpy as np
 import argparse
 from getch import getch
-from GTO_control.utils.utils import smooth_bringup
+from utils.utils import smooth_bringup
 
-from GTO_control.controllers.split_decartes_controller import DecartesController
-from GTO_control.utils.arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
+from controllers.split_decartes_controller import DecartesController
+from utils.arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
-from GTO_control.utils.utils import get_rpy_component, set_rpy_component
+from utils.utils import get_rpy_component, set_rpy_component
 
 DEBUG = True
 

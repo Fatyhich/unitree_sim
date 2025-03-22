@@ -2,12 +2,12 @@ import numpy as np
 import threading
 import time
 
-from GTO_control.utils.arm_definitions import G1JointIndex
+from utils.arm_definitions import G1JointIndex
 from unitree_sdk2py.core.channel import ChannelPublisher, ChannelSubscriber, ChannelFactoryInitialize # dds
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_                                 # idl
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
 from unitree_sdk2py.utils.crc import CRC
-from GTO_control.utils.arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
+from utils.arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
 Kp = [
     60, 60, 60, 100, 40, 40,      # legs

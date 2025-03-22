@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from time import time
 import numpy as np
 import pinocchio as pin
-from GTO_control.kinematics.single_arm_kinematics import SingleArmKinematics
+from kinematics.single_arm_kinematics import SingleArmKinematics
 # from csv_parser import Parser
 
 class KinematicsVisualizer():
@@ -20,7 +20,7 @@ class KinematicsVisualizer():
         self.Y_CENTER = 0
         self.Z_CENTER = 0
 
-        self.pause = 0.5
+        self.pause = 0.01
 
         # create arrays for arm poses
         self.l_xyz = None
