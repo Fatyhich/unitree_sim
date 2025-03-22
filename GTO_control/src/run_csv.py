@@ -67,7 +67,7 @@ def main():
         print()
         # print('press any key to exec')
 
-        if args.visuals:
+        if args.visual:
             # display kinematics
             viz.inverse_kinematics_shoulder(
                 (wrist_pos, wrist_rot)
