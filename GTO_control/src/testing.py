@@ -27,8 +27,8 @@ def process_arguments():
 def main():
     args = process_arguments()
     controller = SynchronousController(
-        output_interface=args.network_interface, 
-        in_local=args.local
+        network_interface=args.network_interface, 
+        is_in_local=args.local
     )
     smooth_bringup(controller)
     test_sine(controller, dt=0.01)
