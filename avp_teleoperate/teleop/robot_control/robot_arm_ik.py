@@ -12,6 +12,8 @@ import sys
 parent2_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(parent2_dir)
 
+pwd = os.getcwd()
+
 from teleop.utils.weighted_moving_filter import WeightedMovingFilter
 
 class G1_29_ArmIK:
@@ -23,13 +25,13 @@ class G1_29_ArmIK:
 
         if not self.Unit_Test:
             self.robot = pin.RobotWrapper.BuildFromURDF(
-                '/home/oversir/projects/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
-                '/home/oversir/projects/avp_teleoperate/assets/g1/'
+                '/home/bulka/g1_robot/unitree_sim/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
+                '/home/bulka/g1_robot/unitree_sim/avp_teleoperate/assets/g1/'
             )
         else:
             self.robot = pin.RobotWrapper.BuildFromURDF(
-                '/home/oversir/projects/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
-                '/home/oversir/projects/avp_teleoperate/assets/g1/'
+                '/home/bulka/g1_robot/unitree_sim/avp_teleoperate/assets/g1/g1_body29_hand14.urdf',
+                '/home/bulka/g1_robot/unitree_sim/avp_teleoperate/assets/g1/'
             ) # for test
 
         self.mixed_jointsToLockIDs = [

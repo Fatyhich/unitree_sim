@@ -17,3 +17,7 @@ env/
 # IDE settings
 .vscode/
 .idea/ 
+
+# ignore mujoco logs
+unitree_mujoco/simulate_python/MUJOCO_LOG.TXT
+
