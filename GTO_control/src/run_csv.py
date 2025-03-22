@@ -1,10 +1,10 @@
-from csv_parser import Parser
+from GTO_control.utils.csv_parser import Parser
 import pinocchio as pin
 from getch import getch
-from split_decartes_controller import DecartesController
+from GTO_control.controllers.split_decartes_controller import DecartesController
 import argparse
-from utils import smooth_bringup
-from kinematics_visualizer import KinematicsVisualizer
+from GTO_control.utils.utils import smooth_bringup
+from GTO_control.kinematics.kinematics_visualizer import KinematicsVisualizer
 
 def parse_args():
     parser = argparse.ArgumentParser()

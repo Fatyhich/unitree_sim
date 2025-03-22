@@ -2,10 +2,10 @@ import numpy as np
 from time import sleep
 import matplotlib.pyplot as plt
 import argparse
-from synchronous_controller import SynchronousController
-from arm_definitions import G1JointArmIndex
-from arm_definitions import G1JointIndex
-from utils import smooth_bringup, test_sine
+from GTO_control.controllers.synchronous_controller import SynchronousController
+from GTO_control.utils.arm_definitions import G1JointArmIndex
+from GTO_control.utils.arm_definitions import G1JointIndex
+from GTO_control.utils.utils import smooth_bringup, test_sine
 
 def process_arguments():
     parser = argparse.ArgumentParser()
