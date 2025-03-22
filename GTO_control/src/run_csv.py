@@ -11,12 +11,32 @@ import matplotlib.pyplot as plt
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', help='CSV file to read')
-    parser.add_argument('-n', '--num', help='Number of lines to read', type=int, default=1)
-    parser.add_argument('-ni', '--network-interface', help='Network interface for control output.')
-    parser.add_argument('-l', '--local', help='Specifies if robot is run in simulation', action='store_true')
+    parser.add_argument(
+        '-n', 
+        '--num', 
+        help='Number of lines to read', 
+        type=int, 
+        default=1
+        )
+    parser.add_argument(
+        '-ni', 
+        '--network-interface', 
+        help='Network interface for control output.'
+        )
+    parser.add_argument(
+        '-l',
+        '--local',
+        help='Specifies if robot is run in simulation',
+        action='store_true'
+        )
     parser.add_argument(
         '-uc', '--use-control', 
         help='If true, a controller will be created that will execute everything.', 
+        action='store_true'
+    )
+    parser.add_argument(
+        '-v', '--visual',
+        help='If True, will also display kinematics of the robot',
         action='store_true'
     )
     args = parser.parse_args()
@@ -32,7 +52,8 @@ def main():
         smooth_bringup(controller)
         _, (r_xyz, r_rpy) = controller.get_ee_xyzrpy()
 
-    viz = KinematicsVisualizer()
+    if args.visual:
+        viz = KinematicsVisualizer()
 
     counter = 0
     for line_num, line in enumerate(csv_parser):
@@ -46,13 +67,16 @@ def main():
         print()
         # print('press any key to exec')
 
-        viz.inverse_kinematics_shoulder(
-            (wrist_pos, wrist_rot)
-            # (r_xyz, r_rpy)
-        )
+        if args.visuals:
+            # display kinematics
+            viz.inverse_kinematics_shoulder(
+                (wrist_pos, wrist_rot)
+                # (r_xyz, r_rpy)
+            )
 
-        while not plt.waitforbuttonpress(0):
-            pass
+            # wait for key
+            while not plt.waitforbuttonpress(0):
+                pass
         
         if args.use_control:
             controller.go_to(
