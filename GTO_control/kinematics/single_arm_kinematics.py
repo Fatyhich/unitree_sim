@@ -4,13 +4,13 @@ import numpy as np
 import pinocchio as pin                             
 import time
 from pinocchio import casadi as cpin
-from utils import SE3_from_xyz_rpy
+from GTO_control.utils.utils import SE3_from_xyz_rpy
 from pinocchio.robot_wrapper import RobotWrapper
 from pinocchio.visualize import MeshcatVisualizer
 import os
 import sys
 
-from arm_definitions import NON_ARM_JOINTS, RIGHT_ARM_JOINTS, LEFT_ARM_JOINTS
+from GTO_control.utils.arm_definitions import NON_ARM_JOINTS, RIGHT_ARM_JOINTS, LEFT_ARM_JOINTS
 
 parent2_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(parent2_dir)

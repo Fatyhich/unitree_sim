@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from time import time
 import numpy as np
 import pinocchio as pin
-from single_arm_kinematics import SingleArmKinematics
+from GTO_control.kinematics.single_arm_kinematics import SingleArmKinematics
 # from csv_parser import Parser
 
 class KinematicsVisualizer():
