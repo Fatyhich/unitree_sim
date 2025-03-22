@@ -31,68 +31,7 @@ class Parser:
         self.trajectory_data = None
         self.transform_matrix = None
     
-    def set_transform_matrix(self, position, quaternion=None, euler_angles=None, euler_seq='xyz'):
-        """
-        Sets the transformation matrix based on position and orientation.
-        
-        Args:
-            position (list or np.ndarray): Position vector [x, y, z]
-            quaternion (list or np.ndarray, optional): Quaternion orientation [x, y, z, w]
-            euler_angles (list or np.ndarray, optional): Euler angles in radians
-            euler_seq (str, optional): Euler angles sequence (e.g., 'xyz', 'zyx')
-            
-        Returns:
-            np.ndarray: Transformation matrix 4x4
-        """
-        position = np.array(position)
-        
-        if quaternion is not None:
-            quaternion = np.array(quaternion)
-            rotation = Rotation.from_quat(quaternion)
-        elif euler_angles is not None:
-            euler_angles = np.array(euler_angles)
-            rotation = Rotation.from_euler(euler_seq, euler_angles)
-        else:
-            rotation = Rotation.from_euler('xyz', [0, 0, 0])
-        
-        rotation_matrix = rotation.as_matrix()
-        
-        # TF Matrix
-        transform_matrix = np.eye(4)
-        transform_matrix[:3, :3] = rotation_matrix
-        transform_matrix[:3, 3] = position
-        
-        self.transform_matrix = transform_matrix
-        return transform_matrix
-    
-    def transform_point(self, point, inverse=False):
-        """
-        TF from shoulder to waist.
-        
-        Args:
-            point (list or np.ndarray): Point in format [x, y, z]
-            inverse (bool, optional): If True, performs inverse transformation
-                                     (from local to global system)
-            
-        Returns:
-            np.ndarray: Transformed point [x, y, z]
-        """
-        if self.transform_matrix is None:
-            print("Transform matrix not set. Use set_transform_matrix().")
-            return point
-        
-        homogeneous_point = np.append(point, 1)
-        
-        if inverse:
-            transform = self.transform_matrix
-            transformed_point = transform @ homogeneous_point
-        else:
-            transform = np.linalg.inv(self.transform_matrix)
-            transformed_point = transform @ homogeneous_point
-        
-        return transformed_point[:3]
-    
-    def parse_trajectory_file(self, transform=False, inverse=False):
+    def parse_trajectory_file(self):
         """
         Parse the trajectory file and extract data.
         
@@ -138,17 +77,20 @@ class Parser:
             
             # Elbow: xyz (positions 1-3), ypr are zeros (positions 4-6)
             elbow_pos = row[1:4]
+            elbow_pos[0], elbow_pos[1] = elbow_pos[1], elbow_pos[0]
+            elbow_pos = [x * 0.3 for x in elbow_pos]
             
             # Wrist: xyz (positions 7-9)
             wrist_pos = row[7:10]
+            wrist_pos[0], wrist_pos[1] = wrist_pos[1], wrist_pos[0]
+            wrist_pos = [x * 0.4 for x in wrist_pos]
             
             # Wrist: ypr (positions 10-12)
             wrist_orient = row[10:13]
-            
-            if transform and self.transform_matrix is not None:
-                elbow_pos = self.transform_point(elbow_pos, inverse)
-                wrist_pos = self.transform_point(wrist_pos, inverse)
-            
+            wrist_orient.reverse()
+            wrist_orient[0] = wrist_orient[0] - 90
+            wrist_orient[2] = wrist_orient[2] + 180
+
             times.append(time)
             elbow_positions.append(elbow_pos)
             wrist_positions.append(wrist_pos)
@@ -269,14 +211,9 @@ class Parser:
 
 def main():
     parser = Parser()
+    parser.parse_trajectory_file()
     
-    position = (0, 0.137926, 0.290497)
-    quaternion = (0, 0, 0, 1)
-    parser.set_transform_matrix(position, quaternion=quaternion)
-    
-    parser.parse_trajectory_file(transform=True)
-    
-    parser.save_to_csv()
+    # parser.save_to_csv()
     
     print("\nПервые 5 точек преобразованной траектории:")
     for i, row in enumerate(parser):
@@ -285,7 +222,7 @@ def main():
         print(f"  Локоть (преобразованный): {row['elbow_position']}")
         print(f"  Запястье (преобразованное): {row['wrist_position']}")
         
-        if i >= 4:
+        if i >= 10:
             break
 
 
