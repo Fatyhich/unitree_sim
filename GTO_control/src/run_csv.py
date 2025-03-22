@@ -1,4 +1,5 @@
 from utils.csv_parser import Parser
+from time import sleep
 import pinocchio as pin
 from getch import getch
 from controllers.split_decartes_controller import DecartesController
@@ -42,6 +43,7 @@ def main():
         print(' xyz: ', wrist_pos)
         print(' rpy: ', wrist_rot)
         print('----------------')
+        print()
         # print('press any key to exec')
 
         viz.inverse_kinematics_shoulder(
@@ -54,19 +56,18 @@ def main():
         
         if args.use_control:
             controller.go_to(
-                l_pos=wrist_pos,
-                l_rpy=wrist_rot,
-                r_pos=r_xyz,
-                r_rpy=r_rpy
+                l_xyzrpy=(wrist_pos, wrist_rot),
+                shoulder=True
             )
+            sleep(0.02)
 
             # print current position
-            (l_xyz, l_rpy), _ = controller.get_ee_xyzrpy()
-            print('-----CURRENT-----')
-            print(' xyz: ', l_xyz)
-            print(' rpy: ', l_rpy)
-            print('-----------------')
-            print()
+            # (l_xyz, l_rpy), _ = controller.get_ee_xyzrpy()
+            # print('-----CURRENT-----')
+            # print(' xyz: ', l_xyz)
+            # print(' rpy: ', l_rpy)
+            # print('-----------------')
+            # print()
 
 
 if __name__ == '__main__':

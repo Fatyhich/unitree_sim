@@ -47,13 +47,13 @@ class KinematicsVisualizer():
         self.ax.set_ylim3d([-self.MAX_DIM + self.Y_CENTER, self.MAX_DIM + self.Y_CENTER])
         self.ax.set_zlim3d([-self.MAX_DIM + self.Z_CENTER, self.MAX_DIM + self.Z_CENTER])
 
-    def draw_axes(self, point, rpy, axes_len=0.05, axes_thickness=1, alternate_color=False):
+    def draw_axes(self, point, rpy, axes_len=0.05, axes_thickness=2, alternate_color=False):
         red = [1, 0, 0]
         green = [0, 1, 0]
         blue = [0, 0, 1]
         if alternate_color:
-            red = [1, 0, 1]
-            green = [0.3, 1, 0.3]
+            red = [1, 0, 0.5]
+            green = [0.5, 1, 0.2]
             blue = [0, 1, 1]
 
         # create rotation matirx

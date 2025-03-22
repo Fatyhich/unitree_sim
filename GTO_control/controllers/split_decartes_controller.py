@@ -33,22 +33,45 @@ class DecartesController(SynchronousController):
     def get_initial_guess(self):
         return np.asarray(self._GetLeftJoints()), np.asarray(self._GetRightJoints())
 
-    def go_to(self, l_pos, l_rpy, r_pos, r_rpy):
+    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False):
         # get initial guess
         l_init_guess, r_init_guess = self.get_initial_guess()
 
-        # calculate ik
-        l_target_q = self.l_arm.inverse_kinematics(
-            xyz=l_pos,
-            rpy=l_rpy,
-            current_motor_q=l_init_guess
-        )
+        # set joint targets as current 
+        l_target_q = l_init_guess
+        r_target_q = r_init_guess
 
-        r_target_q = self.r_arm.inverse_kinematics(
-            xyz=r_pos,
-            rpy=r_rpy,
-            current_motor_q=r_init_guess
-        )
+        if not shoulder:
+            # calculate ik
+            if l_xyzrpy is not None:
+                l_target_q = self.l_arm.inverse_kinematics(
+                    xyz=l_xyzrpy[0],
+                    rpy=l_xyzrpy[1],
+                    current_motor_q=l_init_guess
+                )
+
+            if r_xyzrpy is not None:
+                r_target_q = self.r_arm.inverse_kinematics(
+                    xyz=r_xyzrpy[0],
+                    rpy=r_xyzrpy[1],
+                    current_motor_q=r_init_guess
+                )
+        else:
+            # calculate ik FOR SHOULDER
+            if l_xyzrpy is not None:
+                l_target_q = self.l_arm.inverse_kinematics_shoulder(
+                    xyz=l_xyzrpy[0],
+                    rpy=l_xyzrpy[1],
+                    current_motor_q=l_init_guess
+                )
+
+            if r_xyzrpy is not None:
+                r_target_q = self.r_arm.inverse_kinematics_shoulder(
+                    xyz=r_xyzrpy[0],
+                    rpy=r_xyzrpy[1],
+                    current_motor_q=r_init_guess
+                )
+
 
         msg = construct_arm_message(np.concatenate((l_target_q, r_target_q)))
 

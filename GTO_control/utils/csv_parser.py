@@ -89,7 +89,9 @@ class Parser:
             wrist_orient = row[10:13]
             wrist_orient.reverse()
             wrist_orient[0] = wrist_orient[0] + 180
-            wrist_orient[2] = wrist_orient[2] - 180
+            wrist_orient[2] = wrist_orient[2] - 90
+            wrist_orient = [x * (np.pi / 180) for x in wrist_orient]
+           
 
             times.append(time)
             elbow_positions.append(elbow_pos)
