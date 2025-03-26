@@ -112,15 +112,14 @@ class SingleArmKinematics:
 
         self.reduced_robot.data = pin.Data(self.reduced_robot.model)
 
-        # pin.updateFramePlacements(self.reduced_robot.model, self.reduced_robot.data)
-
-
-    def __create_casadi_problem(self):
-        
         # Creating Casadi models and data for symbolic computing
         self.cmodel = cpin.Model(self.reduced_robot.model)
         self.cdata = self.cmodel.createData()
 
+
+
+    def __create_casadi_problem(self):
+        
         # Creating symbolic variables
         self.cq = casadi.SX.sym("q", self.reduced_robot.model.nq, 1) 
         self.target_tf = casadi.SX.sym("target_tf", 4, 4)

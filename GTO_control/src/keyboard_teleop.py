@@ -83,9 +83,15 @@ class KeyboardTeleop:
         print('xyz: ', self.off_xyz)
         print('rpy: ', self.off_rpy)
         if self.is_left:
-            self.controller.go_to(self.main_xyz, self.main_rpy, self.off_xyz, self.off_rpy)
+            self.controller.go_to(
+                (self.main_xyz, self.main_rpy), 
+                (self.off_xyz, self.off_rpy)
+            )
         else:
-            self.controller.go_to(self.off_xyz, self.off_rpy, self.main_xyz, self.main_rpy)
+            self.controller.go_to(
+                (self.off_xyz, self.off_rpy),
+                (self.main_xyz, self.main_rpy)
+            )
 
     def get_joint_states(self):
         states = self.controller._GetJointStates()
