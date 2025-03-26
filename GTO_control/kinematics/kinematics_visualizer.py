@@ -2,14 +2,14 @@ import matplotlib.pyplot as plt
 from time import time
 import numpy as np
 import pinocchio as pin
-from kinematics.single_arm_kinematics import SingleArmKinematics
+from kinematics.single_arm_kinematics_with_elbow import SingleArmKinematicsWithElbow
 # from csv_parser import Parser
 
 class KinematicsVisualizer():
 
     def __init__(self):
-        self.l_kinematics = SingleArmKinematics(is_left=True)
-        self.r_kinematics = SingleArmKinematics(is_left=False)
+        self.l_kinematics = SingleArmKinematicsWithElbow(is_left=True)
+        self.r_kinematics = SingleArmKinematicsWithElbow(is_left=False)
         # add plot to draw on
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111, projection='3d')
@@ -186,6 +186,10 @@ class KinematicsVisualizer():
         if update:
             self.update_arms_viz()
         
+    def pelvis_to_shoulder(self, l_xyzrpy=None, r_xyzrpy=None):
+        pass
+
+    
     def inverse_kinematics_pelvis(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, update=True):
         """Solves and visualizes kinematics based on target positin in pelvis frame of reference
 
@@ -231,7 +235,14 @@ class KinematicsVisualizer():
         if update:
             self.update_arms_viz()
 
-    def inverse_kinematics_shoulder(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, update=True):
+    def inverse_kinematics_shoulder(
+            self, 
+            l_xyzrpy:tuple=None, 
+            r_xyzrpy:tuple=None, 
+            update=True, 
+            l_elbow_xyz=None,
+            r_elbow_xyz=None
+            ):
         """Solves and visualizes kinematics based on target positin in shoulder frame of reference
 
         Args:
@@ -283,6 +294,92 @@ class KinematicsVisualizer():
 
         if update:
             self.update_arms_viz()
+
+
+# NEVERMIND, ILL FINISH THAT LATER
+
+    def inverse_kinematics(
+            self,
+            l_xyzrpy:tuple=None,
+            r_xyzrpy:tuple=None,
+            origin:str='pelvis',
+            l_elbow_target=None,
+            r_elbow_target=None
+            ):
+        """Calculates and draws inverse kinematics for given targets.
+
+        Args:
+            l_xyzrpy (tuple, optional): Target position and orientation of the left wrist **as a tuple** (xyz, rpy). 
+                If **None**, will use last known position of the left wrist.
+                Defaults to None.
+
+            r_xyzrpy (tuple, optional): Target position and orientation of the right wrist **as a tuple** (xyz, rpy). 
+                If **None**, will use last known position of the right wrist.
+                Defaults to None.
+
+            origin (str, optional): Describes where the origin of coordinates is. 
+                It can either be 'pelvis' or 'shoulder'.
+                Defaults to 'pelvis'.
+
+            l_elbow_target (_type_, optional): Target xyz of the left elbow. 
+                If **None** will not use elbow for inverse kinematics.
+                Defaults to None.
+            r_elbow_target (_type_, optional): Target xyz of the right elbow. 
+                If **None** will not use elbow for inverse kinematics.
+                Defaults to None.
+        """
+
+        # separate targets
+        if l_xyzrpy is not None:
+            self.l_target = np.array(l_xyzrpy)
+            l_xyz, l_rpy = l_xyzrpy
+
+        if r_xyzrpy is not None:
+            self.r_target = np.array(r_xyzrpy)
+            r_xyz, r_rpy = r_xyzrpy
+        
+
+        # if origin is shoulder, convert to shoulder origin
+        if origin == 'shoulder':
+            if l_xyzrpy is not None:
+                self.l_target[0] += self.l_xyz[0]
+            if r_xyzrpy is not None:
+                self.r_target[0] += self.r_xyz[0]
+
+        # solve kinematics
+        if l_xyzrpy is not None:
+            start = time()
+            l_ik = self.l_kinematics.inverse_kinematics(
+                xyz=l_xyz,
+                rpy=l_rpy,
+                elbow_xyz=l_elbow_target,
+                current_motor_q=self.l_joints
+            )
+            end = time()
+            print(f'left kinematics done in {end-start} sec')
+            self.l_joints = l_ik
+
+        if r_xyzrpy is not None:
+            start = time()
+            r_ik = self.r_kinematics.inverse_kinematics(
+                xyz=r_xyz,
+                rpy=r_rpy,
+                elbow_xyz=r_elbow_target,
+                current_motor_q=self.r_joints
+            )
+            end = time()
+            print(f'right kinematics done in {end-start} sec')
+            self.r_joints = r_ik
+
+
+        self.forward_kinematics(
+            l_joints=self.l_joints,
+            r_joints=self.r_joints,
+            update=False
+        )
+
+        self.update_arms_viz()
+               
 
 def main():
 

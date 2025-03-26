@@ -221,23 +221,34 @@ class SingleArmKinematics:
         
         return shoulder_pose, elbow_pose, ee_pose
 
-    def inverse_kinematics(self, xyz, rpy, current_motor_q=None, current_motor_dq=None):
+    def pelvis_to_shoulder(self, pose:pin.SE3):
+        # get shoulder
+        shoulder_pose:pin.SE3 = self.get_shoulder_pose(np.zeros(7))
+
+        # apply inverse transform
+        target_pose_shoulder = shoulder_pose.act(pose)
+
+        return target_pose_shoulder
+
+    def inverse_kinematics(self, xyz, rpy, current_motor_q=None, current_motor_dq=None, from_shoulder:bool=False):
         wrist_target = SE3_from_xyz_rpy(xyz, rpy)
+
+        if from_shoulder:
+            wrist_target = self.pelvis_to_shoulder(wrist_target)
+
         return self._solve_ik(
             wrist_target=wrist_target.homogeneous,
             current_arm_motor_q=current_motor_q,
             current_arm_motor_dq=current_motor_dq
             )
 
+##############################
+# LEGACY FUNCTION NOT NEEDED #
+##############################
     def inverse_kinematics_shoulder(self, xyz, rpy, current_motor_q=None, current_motor_dq=None):
-        # get shoulder position
-        shoulder_pose:pin.SE3 = self.get_shoulder_pose(np.zeros(7))
+        wrist_target = SE3_from_xyz_rpy(xyz, rpy)
 
-        # convert xyz rpy to se3
-        target_pose = SE3_from_xyz_rpy(xyz, rpy)
-
-        # apply inverse transform
-        target_pose_shoulder = shoulder_pose.act(target_pose)
+        target_pose_shoulder = self.pelvis_to_shoulder(wrist_target)
 
         # solve ik for inverted
         return self._solve_ik(

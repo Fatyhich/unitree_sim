@@ -59,6 +59,7 @@ def main():
     for line_num, line in enumerate(csv_parser):
         wrist_pos = line['wrist_position']
         wrist_rot = line['wrist_orientation']
+        elbow_pos = line['elbow_position']
 
         print('-----TARGET-----')
         print(' xyz: ', wrist_pos)
@@ -69,8 +70,9 @@ def main():
 
         if args.visual:
             # display kinematics
-            viz.inverse_kinematics_shoulder(
-                (wrist_pos, wrist_rot)
+            viz.inverse_kinematics(
+                (wrist_pos, wrist_rot),
+                l_elbow_target=elbow_pos
                 # (r_xyz, r_rpy)
             )
 
