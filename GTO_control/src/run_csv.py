@@ -1,8 +1,9 @@
 from utils.csv_parser import Parser
+from time import time
 from time import sleep
 import pinocchio as pin
 from getch import getch
-from controllers.split_decartes_controller import DecartesController
+from controllers.decartes_controller import DecartesController
 import argparse
 from utils.utils import smooth_bringup
 from kinematics.kinematics_visualizer import KinematicsVisualizer
@@ -56,6 +57,7 @@ def main():
         viz = KinematicsVisualizer()
 
     counter = 0
+    start = time()
     for line_num, line in enumerate(csv_parser):
         wrist_pos = line['wrist_position']
         wrist_rot = line['wrist_orientation']
@@ -86,7 +88,8 @@ def main():
             controller.go_to(
                 l_xyzrpy=(wrist_pos, wrist_rot),
                 shoulder=True,
-                l_elbow_xyz=elbow_pos
+                l_elbow_xyz=elbow_pos,
+                dt=0.02
             )
             sleep(0.02)
 
@@ -97,7 +100,9 @@ def main():
             # print(' rpy: ', l_rpy)
             # print('-----------------')
             # print()
-
+        print('TARGET TIME: ', line['time'])
+    end = time()
+    print('FULL TIME: ', end - start)
 
 if __name__ == '__main__':
     main()

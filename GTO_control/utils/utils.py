@@ -6,7 +6,7 @@ from utils.arm_definitions import G1JointArmIndex, G1JointIndex
 def log(object, msg):
     print(f'[{type(object).__name__}] {msg}')
 
-def construct_arm_message(joint_states, joint_velocities=None):
+def construct_arm_message(joint_states, joint_velocities=None, torq_ff=None):
     
     msg = {}
 
@@ -14,9 +14,13 @@ def construct_arm_message(joint_states, joint_velocities=None):
     if joint_velocities is None:
         joint_velocities = np.zeros_like(joint_states)
 
+    # if torqs are None, use zeros
+    if torq_ff is None:
+        torq_ff = np.zeros_like(joint_states)
+
     # fill message
     for idx, joint in enumerate(G1JointArmIndex):
-        msg[joint] = (joint_states[idx], joint_velocities[idx])
+        msg[joint] = (joint_states[idx], joint_velocities[idx], torq_ff[idx])
 
     return msg
 
@@ -47,13 +51,15 @@ def smooth_bringup(controller, time=2.0, dt= 0.02):
     times = np.arange(0, time * 1.1, dt)
     for t in times:
         percentage = np.clip(t / time, 0., 1.)
-        message = {}
+        values = np.zeros(7)
         # pos = controller.low_state.motor_state[joint].q
-        for joint in G1JointIndex:
+        message = {}
+        for idx, joint in enumerate(G1JointIndex):
             pos = (1. - percentage) * controller.low_state.motor_state[joint].q
             # vel = (new_pos - pos) / dt
             # pos = new_pos
-            message[joint] = (pos, 0)
+            message[joint] = (pos, 0, 0)
+
 
         controller.ExecuteCommand(message)
         sleep(dt)

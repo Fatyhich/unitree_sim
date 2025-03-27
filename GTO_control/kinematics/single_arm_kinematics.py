@@ -16,7 +16,7 @@ parent2_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__
 sys.path.append(parent2_dir)
 pwd = os.getcwd()
 
-# from teleop.utils.weighted_moving_filter import WeightedMovingFilter
+from utils.weighted_moving_filter import WeightedMovingFilter
 
 
 class SingleArmKinematics:
@@ -177,7 +177,7 @@ class SingleArmKinematics:
         self.opti.solver("ipopt", opts)
 
         self.init_data = np.zeros(self.reduced_robot.model.nq)
-        # self.smooth_filter = WeightedMovingFilter(np.array([0.4, 0.3, 0.2, 0.1]), 14)
+        self.smooth_filter = WeightedMovingFilter(np.array([0.4, 0.3, 0.2, 0.1]), 7)
         self.vis = None
 
     def _update_forward_kinematics(self, q):
@@ -248,21 +248,6 @@ class SingleArmKinematics:
             current_arm_motor_dq=current_motor_dq
             )
 
-##############################
-# LEGACY FUNCTION NOT NEEDED #
-##############################
-    def inverse_kinematics_shoulder(self, xyz, rpy, current_motor_q=None, current_motor_dq=None):
-        wrist_target = SE3_from_xyz_rpy(xyz, rpy)
-
-        target_pose_shoulder = self.pelvis_to_shoulder(wrist_target)
-
-        # solve ik for inverted
-        return self._solve_ik(
-            target_pose_shoulder.homogeneous, 
-            current_arm_motor_q=current_motor_q, 
-            current_arm_motor_dq=current_motor_dq
-        )
-
     def _solve_ik(self, wrist_target, current_arm_motor_q = None, current_arm_motor_dq = None):
         if current_arm_motor_q is not None:
             self.init_data = current_arm_motor_q
@@ -279,29 +264,27 @@ class SingleArmKinematics:
             # get poses from solution
             sol_q = self.opti.value(self.var_q)
             # make solution smoother
-            # self.smooth_filter.add_data(sol_q)
-            # sol_q = self.smooth_filter.filtered_data
+            self.smooth_filter.add_data(sol_q)
+            sol_q = self.smooth_filter.filtered_data
 
             # save for next zeroth approximation
             self.init_data = sol_q
 
-            # fucking stupid lines
-            # why not np.zeros_like?
-            ###### UNCOMMENT IF NEEDED ########
-            ## if current_lr_arm_motor_dq is not None:
-            ##     v = current_lr_arm_motor_dq * 0.0
-            ## else:
-            ##     v = (sol_q - self.init_data) * 0.0
+            # get target velocities
+            if current_arm_motor_dq is not None:
+                v = current_arm_motor_dq
+            else:
+                v = sol_q - self.init_data
 
 
             # i do not trust this stuff for now
             ###### UNCOMMENT IF NEEDED ########
-            ## sol_tauff = pin.rnea(self.reduced_robot.model, self.reduced_robot.data, sol_q, v, np.zeros(self.reduced_robot.model.nv))
+            sol_tauff = pin.rnea(self.reduced_robot.model, self.reduced_robot.data, sol_q, v, np.zeros(self.reduced_robot.model.nv))
             ##
             ## if self.Visualization:
             ##     self.vis.display(sol_q)  # for visualization
 
-            return sol_q # , sol_tauff
+            return sol_q, sol_tauff
         
         except Exception as e:
             print(f"ERROR in convergence, plotting debug info.{e}")

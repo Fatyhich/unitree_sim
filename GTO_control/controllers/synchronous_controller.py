@@ -124,7 +124,7 @@ class SynchronousController:
 
         Args:
             targets (dict): Keys are joint indeces to write, 
-                values are pairs of target values (q, dq)
+                values are triplets of target values (q, dq, torq_ff)
         """
         # enable arm sdk
         self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = 1 # 1:Enable arm_sdk, 0:Disable arm_sdk
@@ -141,6 +141,8 @@ class SynchronousController:
                 self.low_cmd.motor_cmd[joint].q = targets[joint][0]
                 # add dq
                 self.low_cmd.motor_cmd[joint].dq = targets[joint][1]
+                # add torq
+                self.low_cmd.motor_cmd[joint].tau = targets[joint][2]
 
             # otherwise set command to zero
             else:

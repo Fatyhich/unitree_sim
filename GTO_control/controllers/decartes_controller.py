@@ -33,7 +33,28 @@ class DecartesController(SynchronousController):
     def get_initial_guess(self):
         return np.asarray(self._GetLeftJoints()), np.asarray(self._GetRightJoints())
 
-    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False, l_elbow_xyz=None, r_elbow_xyz=None):
+    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False, l_elbow_xyz=None, r_elbow_xyz=None, dt:float=0):
+        """Moves hands in decartes space.
+
+        Args:
+            l_xyzrpy (tuple, optional): Target pose of the left wrist. 
+                Must be a tuple of 2 arrays with shape(3,): ([x, y, z], [r, p, y]),
+                Defaults to None.
+            r_xyzrpy (tuple, optional): Target pose of the right wrist. 
+                Must be a tuple of 2 arrays with shape(3,): ([x, y, z], [r, p, y]),
+                Defaults to None.
+            shoulder (bool, optional): If true, all coordinates are considered to be relative to shoulder joint. 
+                Otherwise, they are considered relative to pelvis.
+                Defaults to False.
+            l_elbow_xyz (_type_, optional): Target xyz of the left elbow. 
+                If **None**, elbow will not be considered.
+                Defaults to None.
+            r_elbow_xyz (_type_, optional): Target xyz of the right elbow. 
+                If **None**, elbow will not be considered.
+                Defaults to None.
+            dt (float, optional): If > 0, will also set joint speed. 
+                Defaults to 0.
+        """
         # get initial guess
         l_init_guess, r_init_guess = self.get_initial_guess()
 
@@ -41,9 +62,13 @@ class DecartesController(SynchronousController):
         l_target_q = l_init_guess
         r_target_q = r_init_guess
 
+        # initialize torques
+        l_torq_ff = np.zeros_like(l_target_q)
+        r_torq_ff = np.zeros_like(r_target_q)
+
         # calculate ik
         if l_xyzrpy is not None:
-            l_target_q = self.l_arm.inverse_kinematics(
+            l_target_q, l_torq_ff = self.l_arm.inverse_kinematics(
                 xyz=l_xyzrpy[0],
                 rpy=l_xyzrpy[1],
                 current_motor_q=l_init_guess,
@@ -52,7 +77,7 @@ class DecartesController(SynchronousController):
             )
 
         if r_xyzrpy is not None:
-            r_target_q = self.r_arm.inverse_kinematics(
+            r_target_q, r_torq_ff = self.r_arm.inverse_kinematics(
                 xyz=r_xyzrpy[0],
                 rpy=r_xyzrpy[1],
                 current_motor_q=r_init_guess,
@@ -60,7 +85,18 @@ class DecartesController(SynchronousController):
                 elbow_xyz=r_elbow_xyz
             )
 
-        msg = construct_arm_message(np.concatenate((l_target_q, r_target_q)))
+        if dt > 0:
+            l_dq = (l_target_q - l_init_guess) / dt
+            r_dq = (r_target_q - r_init_guess) / dt
+        else:
+            l_dq = np.zeros_like(l_target_q)
+            r_dq = np.zeros_like(r_target_q)
+
+        msg = construct_arm_message(
+            joint_states=np.concatenate((l_target_q, r_target_q)),
+            joint_velocities=np.concatenate((l_dq, r_dq)),
+            torq_ff=np.concatenate((l_torq_ff, r_torq_ff))*0.5
+            )
 
         self.ExecuteCommand(msg)
 

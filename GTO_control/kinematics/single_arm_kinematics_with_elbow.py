@@ -1,5 +1,6 @@
 import casadi
 import numpy as np
+import pinocchio as pin
 from pinocchio import casadi as cpin
 from utils.utils import SE3_from_xyz_rpy 
 from kinematics.single_arm_kinematics import SingleArmKinematics
@@ -124,10 +125,25 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             # get q joints
             sol_q = self.elbow_opti.value(self.elbow_var_q)
 
-            # save as next zero approx
+            self.smooth_filter.add_data(sol_q)
+            sol_q = self.smooth_filter.filtered_data
+
+            # save for next zeroth approximation
             self.init_data = sol_q
 
-            return sol_q
+            # get target velocities
+            if current_arm_motor_dq is not None:
+                v = current_arm_motor_dq
+            else:
+                v = sol_q - self.init_data
+
+
+            # i do not trust this stuff for now
+            ###### UNCOMMENT IF NEEDED ########
+            sol_tauff = pin.rnea(self.reduced_robot.model, self.reduced_robot.data, sol_q, v, np.zeros(self.reduced_robot.model.nv))
+
+            return sol_q, sol_tauff
+
         except Exception as e:
             print(f"ERROR in convergence, plotting debug info.{e}")
 
@@ -136,9 +152,9 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             sol_q = self.smooth_filter.filtered_data
 
             if current_arm_motor_dq is not None:
-                v = current_arm_motor_dq * 0.0
+                v = current_arm_motor_dq#  * 0.0
             else:
-                v = (sol_q - self.init_data) * 0.0
+                v = (sol_q - self.init_data)# * 0.0
 
             self.init_data = sol_q
 
@@ -149,7 +165,7 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
                 self.vis.display(sol_q)  # for visualization
 
             # return sol_q, sol_tauff
-            return current_arm_motor_q # , np.zeros(self.reduced_robot.model.nv)
+            return current_arm_motor_q, np.zeros(self.reduced_robot.model.nv)
         
     def inverse_kinematics(
             self, 

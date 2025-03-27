@@ -3,7 +3,7 @@ import argparse
 from getch import getch
 from utils.utils import smooth_bringup
 
-from controllers.split_decartes_controller import DecartesController
+from controllers.decartes_controller import DecartesController
 from utils.arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
 
 from utils.utils import get_rpy_component, set_rpy_component

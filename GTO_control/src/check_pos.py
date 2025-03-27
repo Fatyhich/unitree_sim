@@ -1,4 +1,4 @@
-from controllers.split_decartes_controller import DecartesController
+from controllers.decartes_controller import DecartesController
 import numpy as np
 
 control = DecartesController(network_interface='enp195s0f3u1')
