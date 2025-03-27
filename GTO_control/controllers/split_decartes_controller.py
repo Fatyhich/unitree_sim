@@ -1,7 +1,7 @@
 import numpy as np
 
 from controllers.synchronous_controller import SynchronousController
-from kinematics.single_arm_kinematics import SingleArmKinematics
+from kinematics.single_arm_kinematics_with_elbow import SingleArmKinematicsWithElbow
 
 from utils.utils import (
     log, 
@@ -26,14 +26,14 @@ class DecartesController(SynchronousController):
         
         # initialize arm
         log(self, 'Initializing Arm Kinematix')
-        self.l_arm = SingleArmKinematics(is_left=True)
-        self.r_arm = SingleArmKinematics(is_left=False)
+        self.l_arm = SingleArmKinematicsWithElbow(is_left=True)
+        self.r_arm = SingleArmKinematicsWithElbow(is_left=False)
         print('Decartes Controller Initialized')
 
     def get_initial_guess(self):
         return np.asarray(self._GetLeftJoints()), np.asarray(self._GetRightJoints())
 
-    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False):
+    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False, l_elbow_xyz=None, r_elbow_xyz=None):
         # get initial guess
         l_init_guess, r_init_guess = self.get_initial_guess()
 
@@ -41,37 +41,24 @@ class DecartesController(SynchronousController):
         l_target_q = l_init_guess
         r_target_q = r_init_guess
 
-        if not shoulder:
-            # calculate ik
-            if l_xyzrpy is not None:
-                l_target_q = self.l_arm.inverse_kinematics(
-                    xyz=l_xyzrpy[0],
-                    rpy=l_xyzrpy[1],
-                    current_motor_q=l_init_guess
-                )
+        # calculate ik
+        if l_xyzrpy is not None:
+            l_target_q = self.l_arm.inverse_kinematics(
+                xyz=l_xyzrpy[0],
+                rpy=l_xyzrpy[1],
+                current_motor_q=l_init_guess,
+                from_shoulder=shoulder,
+                elbow_xyz=l_elbow_xyz
+            )
 
-            if r_xyzrpy is not None:
-                r_target_q = self.r_arm.inverse_kinematics(
-                    xyz=r_xyzrpy[0],
-                    rpy=r_xyzrpy[1],
-                    current_motor_q=r_init_guess
-                )
-        else:
-            # calculate ik FOR SHOULDER
-            if l_xyzrpy is not None:
-                l_target_q = self.l_arm.inverse_kinematics_shoulder(
-                    xyz=l_xyzrpy[0],
-                    rpy=l_xyzrpy[1],
-                    current_motor_q=l_init_guess
-                )
-
-            if r_xyzrpy is not None:
-                r_target_q = self.r_arm.inverse_kinematics_shoulder(
-                    xyz=r_xyzrpy[0],
-                    rpy=r_xyzrpy[1],
-                    current_motor_q=r_init_guess
-                )
-
+        if r_xyzrpy is not None:
+            r_target_q = self.r_arm.inverse_kinematics(
+                xyz=r_xyzrpy[0],
+                rpy=r_xyzrpy[1],
+                current_motor_q=r_init_guess,
+                from_shoulder=shoulder,
+                elbow_xyz=r_elbow_xyz
+            )
 
         msg = construct_arm_message(np.concatenate((l_target_q, r_target_q)))
 

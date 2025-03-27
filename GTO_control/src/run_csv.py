@@ -64,6 +64,7 @@ def main():
         print('-----TARGET-----')
         print(' xyz: ', wrist_pos)
         print(' rpy: ', wrist_rot)
+        print(' elbow: ', elbow_pos)
         print('----------------')
         print()
         # print('press any key to exec')
@@ -72,7 +73,8 @@ def main():
             # display kinematics
             viz.inverse_kinematics(
                 (wrist_pos, wrist_rot),
-                l_elbow_target=elbow_pos
+                l_elbow_target=elbow_pos,
+                origin='shoulder'
                 # (r_xyz, r_rpy)
             )
 
@@ -83,7 +85,8 @@ def main():
         if args.use_control:
             controller.go_to(
                 l_xyzrpy=(wrist_pos, wrist_rot),
-                shoulder=True
+                shoulder=True,
+                l_elbow_xyz=elbow_pos
             )
             sleep(0.02)
 

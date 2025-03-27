@@ -230,6 +230,12 @@ class SingleArmKinematics:
 
         return target_pose_shoulder
 
+    def pelvis_to_shoulder_xyz(self, xyz):
+        shoulder_pose = self.get_shoulder_pose(np.zeros(7))
+        result = shoulder_pose.rotation @ xyz
+        result = result + shoulder_pose.translation
+        return result
+
     def inverse_kinematics(self, xyz, rpy, current_motor_q=None, current_motor_dq=None, from_shoulder:bool=False):
         wrist_target = SE3_from_xyz_rpy(xyz, rpy)
 

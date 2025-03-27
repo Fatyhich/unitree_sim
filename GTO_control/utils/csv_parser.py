@@ -78,7 +78,7 @@ class Parser:
             # Elbow: xyz (positions 1-3), ypr are zeros (positions 4-6)
             elbow_pos = row[1:4]
             elbow_pos[0], elbow_pos[1] = elbow_pos[1], elbow_pos[0]
-            elbow_pos = [x * 0.3 for x in elbow_pos]
+            elbow_pos = [x * 0.4 for x in elbow_pos]
             
             # Wrist: xyz (positions 7-9)
             wrist_pos = row[7:10]

@@ -31,6 +31,8 @@ class KinematicsVisualizer():
         self.r_joints = np.zeros(7, float)
         self.l_target = None
         self.r_target = None
+        self.l_elbow_target = None
+        self.r_elbow_target = None
         # fill arrays with zero poses
         # and draw them
         self.forward_kinematics(self.l_joints, self.r_joints)
@@ -142,6 +144,18 @@ class KinematicsVisualizer():
         if rpy is not None:
             self.draw_axes(xyz, rpy, alternate_color=True)
 
+    def draw_elbow_target(self, elbow_target, color=[0, 0, 1], marker='x'):
+        if elbow_target is None:
+            return
+        self.ax.scatter(
+            xs=elbow_target[0],
+            ys=elbow_target[1],
+            zs=elbow_target[2],
+            color=color,
+            marker=marker,
+            s=70
+        )
+
     def update_arms_viz(self):
         # clear everything
         self.ax.cla()
@@ -151,6 +165,9 @@ class KinematicsVisualizer():
         # draw targets
         self.draw_target(self.l_target, color=[0, 0, 1])
         self.draw_target(self.r_target, color=[1, 0, 0])
+        # draw elbow targets
+        self.draw_elbow_target(self.l_elbow_target, color=[0, 0, 0.5])
+        self.draw_elbow_target(self.r_elbow_target, color=[0.5, 0, 0])
         # set axes
         self.set_axes()
         plt.pause(self.pause)
@@ -190,111 +207,111 @@ class KinematicsVisualizer():
         pass
 
     
-    def inverse_kinematics_pelvis(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, update=True):
-        """Solves and visualizes kinematics based on target positin in pelvis frame of reference
-
-        Args:
-            l_xyzrpy (tuple, optional): 
-                Tuple of np.ndarray with shapes (3,). 
-                First is xyz, second is rpy. 
-                Defaults to None.
-            r_xyzrpy (tuple, optional): 
-                Tuple of no.ndarray with shapes (3,). 
-                First is xyz, second is rpy. 
-                Represents target position for right wrist. 
-                Defaults to None.
-            update (bool, optional): If true, will also update visualization. Defaults to True.
-        """
-        if l_xyzrpy is None and r_xyzrpy is None:
-            print('WARN: UPDATING ARMS WITH NO TARGET POS. NOTHINg WILL BE DONE')
-
-        if l_xyzrpy is not None:
-            self.l_target = l_xyzrpy
-            l_ik = self.l_kinematics.inverse_kinematics(
-                xyz=l_xyzrpy[0],
-                rpy=l_xyzrpy[1],
-                current_motor_q=self.l_joints
-            )
-            self.l_joints = l_ik
-
-        if r_xyzrpy is not None:
-            self.r_target = r_xyzrpy
-            r_ik = self.r_kinematics.inverse_kinematics(
-                xyz = r_xyzrpy[0],
-                rpy = r_xyzrpy[1],
-                current_motor_q=self.r_joints
-            )
-            self.r_joints = r_ik
-
-        self.forward_kinematics(
-            l_joints=self.l_joints,
-            r_joints=self.r_joints,
-            update=False
-        )
-
-        if update:
-            self.update_arms_viz()
-
-    def inverse_kinematics_shoulder(
-            self, 
-            l_xyzrpy:tuple=None, 
-            r_xyzrpy:tuple=None, 
-            update=True, 
-            l_elbow_xyz=None,
-            r_elbow_xyz=None
-            ):
-        """Solves and visualizes kinematics based on target positin in shoulder frame of reference
-
-        Args:
-            l_xyzrpy (tuple, optional): 
-                Tuple of np.ndarray with shapes (3,). 
-                First is xyz, second is rpy. 
-                Defaults to None.
-            r_xyzrpy (tuple, optional): 
-                Tuple of no.ndarray with shapes (3,). 
-                First is xyz, second is rpy. 
-                Represents target position for right wrist. 
-                Defaults to None.
-            update (bool, optional): If true, will also update visualization. Defaults to True.
-        """
-        if l_xyzrpy is None and r_xyzrpy is None:
-            print('WARN: UPDATING ARMS WITH NO TARGET POS. NOTHINg WILL BE DONE')
-
-        if l_xyzrpy is not None:
-            self.l_target = np.array(l_xyzrpy)
-            self.l_target[0] += self.l_xyz[0]
-            start = time()
-            l_ik = self.l_kinematics.inverse_kinematics_shoulder(
-                xyz=l_xyzrpy[0],
-                rpy=l_xyzrpy[1],
-                current_motor_q=self.l_joints
-            )
-            end = time()
-            print('left ik time: ', end-start)
-            self.l_joints = l_ik
-
-        if r_xyzrpy is not None:
-            self.r_target = np.array(r_xyzrpy)
-            self.r_target[0] += self.r_xyz[0]
-            start = time()
-            r_ik = self.r_kinematics.inverse_kinematics_shoulder(
-                xyz = r_xyzrpy[0],
-                rpy = r_xyzrpy[1],
-                current_motor_q=self.r_joints
-            )
-            end = time()
-            print('right ik time: ', end-start)
-            self.r_joints = r_ik
-
-        self.forward_kinematics(
-            l_joints=self.l_joints,
-            r_joints=self.r_joints,
-            update=False
-        )
-
-        if update:
-            self.update_arms_viz()
-
+#     def inverse_kinematics_pelvis(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, update=True):
+#         """Solves and visualizes kinematics based on target positin in pelvis frame of reference
+# 
+#         Args:
+#             l_xyzrpy (tuple, optional): 
+#                 Tuple of np.ndarray with shapes (3,). 
+#                 First is xyz, second is rpy. 
+#                 Defaults to None.
+#             r_xyzrpy (tuple, optional): 
+#                 Tuple of no.ndarray with shapes (3,). 
+#                 First is xyz, second is rpy. 
+#                 Represents target position for right wrist. 
+#                 Defaults to None.
+#             update (bool, optional): If true, will also update visualization. Defaults to True.
+#         """
+#         if l_xyzrpy is None and r_xyzrpy is None:
+#             print('WARN: UPDATING ARMS WITH NO TARGET POS. NOTHINg WILL BE DONE')
+# 
+#         if l_xyzrpy is not None:
+#             self.l_target = l_xyzrpy
+#             l_ik = self.l_kinematics.inverse_kinematics(
+#                 xyz=l_xyzrpy[0],
+#                 rpy=l_xyzrpy[1],
+#                 current_motor_q=self.l_joints
+#             )
+#             self.l_joints = l_ik
+# 
+#         if r_xyzrpy is not None:
+#             self.r_target = r_xyzrpy
+#             r_ik = self.r_kinematics.inverse_kinematics(
+#                 xyz = r_xyzrpy[0],
+#                 rpy = r_xyzrpy[1],
+#                 current_motor_q=self.r_joints
+#             )
+#             self.r_joints = r_ik
+# 
+#         self.forward_kinematics(
+#             l_joints=self.l_joints,
+#             r_joints=self.r_joints,
+#             update=False
+#         )
+# 
+#         if update:
+#             self.update_arms_viz()
+# 
+#     def inverse_kinematics_shoulder(
+#             self, 
+#             l_xyzrpy:tuple=None, 
+#             r_xyzrpy:tuple=None, 
+#             update=True, 
+#             l_elbow_xyz=None,
+#             r_elbow_xyz=None
+#             ):
+#         """Solves and visualizes kinematics based on target positin in shoulder frame of reference
+# 
+#         Args:
+#             l_xyzrpy (tuple, optional): 
+#                 Tuple of np.ndarray with shapes (3,). 
+#                 First is xyz, second is rpy. 
+#                 Defaults to None.
+#             r_xyzrpy (tuple, optional): 
+#                 Tuple of no.ndarray with shapes (3,). 
+#                 First is xyz, second is rpy. 
+#                 Represents target position for right wrist. 
+#                 Defaults to None.
+#             update (bool, optional): If true, will also update visualization. Defaults to True.
+#         """
+#         if l_xyzrpy is None and r_xyzrpy is None:
+#             print('WARN: UPDATING ARMS WITH NO TARGET POS. NOTHINg WILL BE DONE')
+# 
+#         if l_xyzrpy is not None:
+#             self.l_target = np.array(l_xyzrpy)
+#             self.l_target[0] += self.l_xyz[0]
+#             start = time()
+#             l_ik = self.l_kinematics.inverse_kinematics_shoulder(
+#                 xyz=l_xyzrpy[0],
+#                 rpy=l_xyzrpy[1],
+#                 current_motor_q=self.l_joints
+#             )
+#             end = time()
+#             print('left ik time: ', end-start)
+#             self.l_joints = l_ik
+# 
+#         if r_xyzrpy is not None:
+#             self.r_target = np.array(r_xyzrpy)
+#             self.r_target[0] += self.r_xyz[0]
+#             start = time()
+#             r_ik = self.r_kinematics.inverse_kinematics_shoulder(
+#                 xyz = r_xyzrpy[0],
+#                 rpy = r_xyzrpy[1],
+#                 current_motor_q=self.r_joints
+#             )
+#             end = time()
+#             print('right ik time: ', end-start)
+#             self.r_joints = r_ik
+# 
+#         self.forward_kinematics(
+#             l_joints=self.l_joints,
+#             r_joints=self.r_joints,
+#             update=False
+#         )
+# 
+#         if update:
+#             self.update_arms_viz()
+# 
 
 # NEVERMIND, ILL FINISH THAT LATER
 
@@ -334,10 +351,15 @@ class KinematicsVisualizer():
             self.l_target = np.array(l_xyzrpy)
             l_xyz, l_rpy = l_xyzrpy
 
+        if l_elbow_target is not None:
+            self.l_elbow_target = np.copy(l_elbow_target)
+
         if r_xyzrpy is not None:
             self.r_target = np.array(r_xyzrpy)
             r_xyz, r_rpy = r_xyzrpy
         
+        if r_elbow_target is not None:
+            self.r_elbow_target = np.copy(r_elbow_target)
 
         # if origin is shoulder, convert to shoulder origin
         if origin == 'shoulder':
@@ -345,6 +367,13 @@ class KinematicsVisualizer():
                 self.l_target[0] += self.l_xyz[0]
             if r_xyzrpy is not None:
                 self.r_target[0] += self.r_xyz[0]
+            
+            if l_elbow_target is not None:
+                self.l_elbow_target += self.l_xyz[0]
+
+            if r_elbow_target is not None:
+                self.r_elbow_target += self.r_xyz[0]
+
 
         # solve kinematics
         if l_xyzrpy is not None:
@@ -353,7 +382,8 @@ class KinematicsVisualizer():
                 xyz=l_xyz,
                 rpy=l_rpy,
                 elbow_xyz=l_elbow_target,
-                current_motor_q=self.l_joints
+                current_motor_q=self.l_joints,
+                from_shoulder=(origin=='shoulder')
             )
             end = time()
             print(f'left kinematics done in {end-start} sec')
@@ -365,7 +395,8 @@ class KinematicsVisualizer():
                 xyz=r_xyz,
                 rpy=r_rpy,
                 elbow_xyz=r_elbow_target,
-                current_motor_q=self.r_joints
+                current_motor_q=self.r_joints,
+                from_shoulder=(origin=='shoulder')
             )
             end = time()
             print(f'right kinematics done in {end-start} sec')

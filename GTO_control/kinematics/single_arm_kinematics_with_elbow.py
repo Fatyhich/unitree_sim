@@ -64,6 +64,9 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
         self.elbow_smooth_cost               = casadi.sumsqr(self.elbow_var_q - self.elbow_var_q_last)
         self.elbow_translational_cost        = casadi.sumsqr(self.elbow_translational_error(self.elbow_var_q, self.elbow_param_pos))
 
+        self.joint_weigths = [0, 0, 0, 0, 0, 1, 0]
+        self.joint_cost = casadi.sumsqr(self.elbow_var_q * self.joint_weigths)
+
         # Setting optimization constraints and goals
         self.elbow_opti.subject_to(self.elbow_opti.bounded(
             self.reduced_robot.model.lowerPositionLimit,
@@ -75,8 +78,10 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             self.wrist_rotation_cost + 
             0.02 * self.elbow_regularization_cost + 
             0.1 * self.elbow_smooth_cost +
-            10 * self.elbow_translational_cost
+            50 * self.elbow_translational_cost +
+            0 * self.joint_cost
         )
+        print('am i even here?')
 
         opts = {
             'ipopt':{
@@ -117,7 +122,7 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             sol = self.elbow_opti.solve()
 
             # get q joints
-            sol_q = self.elbow_opti.value(self.var_q)
+            sol_q = self.elbow_opti.value(self.elbow_var_q)
 
             # save as next zero approx
             self.init_data = sol_q
@@ -156,13 +161,14 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             from_shoulder:bool=False
         ):
         # if no elbow given, return just regular kinematics
-        if elbow_xyz is not None:
+        if elbow_xyz is None:
             return super().inverse_kinematics(xyz, rpy, current_motor_q, current_motor_dq, from_shoulder=from_shoulder)
         
         # otherwise calculate ik for elbow
         wrist_target = SE3_from_xyz_rpy(xyz, rpy)
         if from_shoulder:
             wrist_target = self.pelvis_to_shoulder(wrist_target)
+            elbow_xyz = self.pelvis_to_shoulder_xyz(elbow_xyz)
         return self.__solve_ik_elbow(
             wrist_target=wrist_target.homogeneous,
             elbow_target_xyz=elbow_xyz,
