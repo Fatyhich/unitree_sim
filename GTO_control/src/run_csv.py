@@ -1,20 +1,19 @@
-from utils.csv_parser import Parser
-from scipy.interpolate import CubicSpline
 import numpy as np
-from time import time
-from time import sleep
-import pinocchio as pin
-from getch import getch
-from controllers.decartes_controller import DecartesController
-from controllers.synchronous_controller import SynchronousController
-import argparse
-from utils import utils
-from kinematics.kinematics_visualizer import KinematicsVisualizer
+from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 import cv2
+import argparse
 
-from utils.logger import JointLogger
+from time import time
+from time import sleep
+
+import pinocchio as pin
+from utils import utils
+from utils.csv_parser import Parser
+from controllers.decartes_controller import DecartesController
+from kinematics.kinematics_visualizer import KinematicsVisualizer
 from utils.logger_visuals import LoggerVisuals
+from utils.arm_definitions import G1JointIndex
 
 def do_hand_plots(times, to_plot, fig=None, ax=None):
     if fig is None or ax is None:
@@ -292,6 +291,7 @@ def main():
     # or use comparison
     logger.compare_joint_states(17)
     logger.compare_joint_velocities(18)
+    logger.plot_full_motion(G1JointIndex.LeftWristRoll)
     print('FULL TIME: ', end - start)
 
 if __name__ == '__main__':
