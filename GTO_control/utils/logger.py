@@ -16,7 +16,7 @@ class JointLogger():
             network_interface:str=None, 
             is_in_local:bool=False,
             command_topic='rt/arm_sdk',
-            do_dump:bool=False
+            do_dump:bool=True
             ):
 
         self.command_topic = command_topic
