@@ -189,9 +189,7 @@ def main():
         print('initial states')
         print(all_states[0])
 
-    logger = LoggerVisuals(
-        is_in_local=args.local
-    )
+    logger = LoggerVisuals()
 
     # record starting time
     start = time()

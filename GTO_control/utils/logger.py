@@ -158,7 +158,6 @@ class JointLogger():
                     "target_dq" - joint velocities that were passed as targets.
                     "target_torque" - joint torques(tau feed forward) that were passed to control.
                     "control_times" - times at which controls were recorded.
-                }
 
         Returns:
             dict: The keys in the result are the requested data fields.
@@ -176,8 +175,13 @@ class JointLogger():
 
         self.skip_updates = True
         for data_field in desired_data:
-            cur_data = np.asarray(self.data_dict[data_field]).T
-            result[data_field] = cur_data[joint_ids]
+            # if its not time, add it to result
+            if data_field != "real_time" and data_field != "control_time":
+                cur_data = np.asarray(self.data_dict[data_field]).T
+                result[data_field] = cur_data[joint_ids]
+            # otherwise, add is as a single 1-D array
+            else:
+                result[data_field] = self.data_dict[data_field]
         self.skip_updates = False
         return result
     
