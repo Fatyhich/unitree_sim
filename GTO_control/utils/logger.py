@@ -13,15 +13,23 @@ class JointLogger():
 
     def __init__(
             self,
-            network_interface:str=None, 
             is_in_local:bool=False,
             command_topic='rt/arm_sdk',
-            do_dump:bool=True
+            dump_on_death:bool=True,
+            local_load_file:str=None
             ):
+
+        self.dump_on_death = dump_on_death
+
+        # if loading from file
+        # disable all messages
+        # you're working with a static file
+        if local_load_file is not None:
+            self.load_from_file(local_load_file)
+            return
 
         self.command_topic = command_topic
         self.is_in_local = is_in_local
-        self.do_dump = do_dump
 
         self.crc = CRC()
 
@@ -43,16 +51,36 @@ class JointLogger():
             "real_q" : self.real_q,
             "real_dq" : self.real_dq,
             "real_ddq" : self.real_ddq,
-            "real_times" : self.real_time,
+            "real_time" : self.real_time,
             "target_q" : self.target_q,
             "target_dq" : self.target_dq,
             "target_torque" : self.target_torq,
-            "control_times" : self.control_time
+            "control_time" : self.control_time
         }
 
         # initalize all topics
         self.create_subs()
 
+    def load_from_file(self, filename:str):
+        self.skip_updates = True
+        with open(filename, 'rb') as load_file:
+            self.data_dict = pickle.load(load_file)
+        
+        # load fields for real data
+        self.real_time = self.data_dict["real_time"]
+        self.real_q = self.data_dict["real_q"]
+        self.real_dq = self.data_dict["real_dq"]
+        self.real_ddq = self.data_dict["real_ddq"]
+
+        # load fields for commands
+        self.control_time = self.data_dict["control_time"]
+        self.target_q = self.data_dict["target_q"]
+        self.target_dq = self.data_dict["target_dq"]
+        self.target_torq = self.data_dict["target_torque"]
+
+        # updates are not reenabled 
+        # because when loading from file,
+        # nothing is initialized
 
     def create_subs(self):
         # create sub for joint states
@@ -114,7 +142,7 @@ class JointLogger():
                     "real_q" - real joint states.
                     "real_dq" - real joint velocities.
                     "real_ddq" - real joint accelerations.
-                    "real_times" - times at which joints were logged.
+                    "real_time" - times at which joints were logged.
                     "target_q" - joint states that were passed as targets.
                     "target_dq" - joint velocities that were passed as targets.
                     "target_torque" - joint torques(tau feed forward) that were passed to control.
@@ -146,9 +174,8 @@ class JointLogger():
         with open(filename, 'wb') as dump_file:
             pickle.dump(self.data_dict, dump_file)
         
-
     def __del__(self):
-        if self.do_dump:
+        if self.dump_on_death:
             self.dump_data()
 
 if __name__ == '__main__':

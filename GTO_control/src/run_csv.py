@@ -191,7 +191,6 @@ def main():
         print(all_states[0])
 
     logger = LoggerVisuals(
-        network_interface=args.network_interface, 
         is_in_local=args.local
     )
 

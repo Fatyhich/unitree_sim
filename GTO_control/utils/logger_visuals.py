@@ -5,41 +5,90 @@ import matplotlib.pyplot as plt
 class LoggerVisuals(JointLogger):
     def __init__(
             self, 
-            network_interface = None, 
             is_in_local = False, 
             command_topic='rt/arm_sdk', 
-            do_dump = True
+            dump_on_death = True,
+            local_load_file:str=None
         ):
-        super().__init__(network_interface, is_in_local, command_topic, do_dump)
+        super().__init__(is_in_local, command_topic, dump_on_death=dump_on_death, local_load_file=local_load_file)
 
-    def compare_joint_states(self, joint_idx):
+    def compare_joint_states(self, joint_idx, ax=None):
+        """Draws joint states and joint state control in time according to logs.
+
+        Args:
+            joint_idx (int): Joint that you want to check. Must be in G1ArmJointIndex
+            ax (plottable, optional): Used to plot in subplots' ax[i] objects. 
+                If None, will plot using matplotlib.pyplot.plot().
+                Defaults to None.
+        """
+        if ax is None:
+            fig, ax = plt.figure()
+
         self.skip_updates = True
         real_q = np.asarray(self.real_q).T[joint_idx]
         target_q = np.asarray(self.target_q).T[joint_idx]
 
-        plt.plot(self.real_time, real_q)
-        plt.plot(self.control_time, target_q)
+        ax.plot(self.real_time, real_q)
+        ax.plot(self.control_time, target_q)
         self.skip_updates = False
-        plt.grid()
-        plt.xlabel("time, s")
-        plt.ylabel("q, rad")
-        plt.legend(
+        ax.grid()
+        ax.set_xlabel("time, s")
+        ax.set_ylabel("q, rad")
+        ax.legend(
             ["real", "target"]
         )
-        plt.show()
+        if ax is None:
+            plt.show()
 
-    def compare_joint_velocities(self, joint_idx):
+    def compare_joint_velocities(self, joint_idx, ax=None):
+        """Draws joint velocities and joint velcoity control in time according to logs.
+
+        Args:
+            joint_idx (int): Joint that you want to check. Must be in G1ArmJointIndex
+            ax (plottable, optional): Used to plot in subplots' ax[i] objects. 
+                If None, will plot using matplotlib.pyplot.plot().
+                Defaults to None.
+        """
+        if ax is None:
+            fig, ax = plt.figure()
+
         self.skip_updates = True
         real_dq = np.asarray(self.real_dq).T[joint_idx]
         target_dq = np.asarray(self.target_dq).T[joint_idx]
 
-        plt.plot(self.real_time, real_dq)
-        plt.plot(self.control_time, target_dq)
+        ax.plot(self.real_time, real_dq)
+        ax.plot(self.control_time, target_dq)
         self.skip_updates = False
-        plt.grid()
-        plt.xlabel("time, s")
-        plt.ylabel("dq, rad/s")
-        plt.legend(
+        ax.grid()
+        ax.set_xlabel("time, s")
+        ax.set_ylabel("dq, rad/s")
+        ax.legend(
             ["real", "target"]
+        )
+        if ax is None:
+            plt.show()
+    
+    def plot_full_motion(self, joint_idx):
+        """Creates 3 subplots:
+            - Comparison of real joint states and joint state controls.
+            - Comparison of real joint velocities and their control.
+            - Feed-forwad torque.
+
+        Args:
+            joint_idx (int): Index of the joint you want to inspect.
+                Must be in G1ArmJointIndex.
+        """
+        fig, ax = plt.subplots(3, 1)
+        self.compare_joint_states(joint_idx, ax[0])
+        self.compare_joint_velocities(joint_idx, ax[1])
+
+        torque = np.asarray(self.target_torq).T[joint_idx]
+
+        ax[2].plot(self.control_time, torque)
+        ax[2].grid()
+        ax[2].set_xlabel("time, s")
+        ax[2].set_ylabel("torque")
+        ax[2].legend(
+            ["torque_ff"]
         )
         plt.show()
