@@ -187,8 +187,9 @@ class SingleArmKinematics:
         # Update the frame placements
         pin.updateFramePlacements(self.reduced_robot.model, self.reduced_robot.data)
 
-    def get_ee_pose(self, q):
-        self._update_forward_kinematics(q)
+    def get_ee_pose(self, q, update_fk:bool=True):
+        if update_fk:
+            self._update_forward_kinematics(q)
 
         # Get the index of the left and right end - effector frames
         ee_index = self.reduced_robot.model.getFrameId(self.ee_frame_name, pin.FrameType.OP_FRAME)
@@ -198,27 +199,51 @@ class SingleArmKinematics:
 
         return ee_placement
 
-    def get_shoulder_pose(self, q):
-        self._update_forward_kinematics(q)
+    def get_elbow_pose(self, q, update_fk:bool=True):
+        if update_fk:
+            self._update_forward_kinematics(q)
+
+        # get elbow index
+        elbow_index = self.reduced_robot.model.getFrameId(self.elbow_frame_name, pin.FrameType.OP_FRAME)
+        # get elbow SE3 placement
+        elbow_pose = self.reduced_robot.data.oMf[elbow_index]
+
+        return elbow_pose
+
+    def get_shoulder_pose(self, q, update_fk:bool=True):
+        if update_fk:
+            self._update_forward_kinematics(q)
         # get shoulder index
         shoulder_index = self.reduced_robot.model.getFrameId(self.shoulder_frame_name, pin.FrameType.OP_FRAME)
         # get shoulder placement
         shoulder_pose = self.reduced_robot.data.oMf[shoulder_index]
         return shoulder_pose
 
-    def get_arm_points(self, q):
+    def get_arm_points(self, q, in_shoulder:bool=False):
+        """Updates forward kinematics and returns poses of shoulder, elbow and wrist.
+
+        Args:
+            q (np.ndarray): Array of joint values to estimate forward kinematics.
+
+        Returns:
+            tuple: A tuple that contains:
+                - Shoulder pose as pinocchio.SE3 object.
+                - Elbow pose as pinocchio.SE3 object.
+                - Wrist pose as pinocchio.SE3 object.
+        """
+        self._update_forward_kinematics(q)
         # WRIST
-        ee_pose = self.get_ee_pose(q)
-
+        ee_pose = self.get_ee_pose(q, update_fk=False)
         # ELBOW
-        # get elbow index
-        elbow_index = self.reduced_robot.model.getFrameId(self.elbow_frame_name, pin.FrameType.OP_FRAME)
-        # get elbow SE3 placement
-        elbow_pose = self.reduced_robot.data.oMf[elbow_index]
-
+        elbow_pose = self.get_elbow_pose(q, update_fk=False)
         # SHOULDER
-        shoulder_pose = self.get_shoulder_pose(q)
+        shoulder_pose = self.get_shoulder_pose(q, update_fk=False)
         
+        if in_shoulder:
+            ee_pose = self.pelvis_to_shoulder(ee_pose)
+            elbow_pose = self.pelvis_to_shoulder(elbow_pose)
+            shoulder_pose = self.pelvis_to_shoulder(shoulder_pose)
+
         return shoulder_pose, elbow_pose, ee_pose
 
     def pelvis_to_shoulder(self, pose:pin.SE3):

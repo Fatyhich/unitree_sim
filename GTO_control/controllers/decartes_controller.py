@@ -7,6 +7,7 @@ from utils.utils import (
     log, 
     construct_arm_message,
     SE3_from_xyz_rpy,
+    SE3_to_xyzrpy,
     tf_to_rpy
 )
 
@@ -120,3 +121,12 @@ class DecartesController(SynchronousController):
         l_pose = self.l_arm.get_ee_pose(states[:7])
         r_pose = self.r_arm.get_ee_pose(states[7:])
         return l_pose, r_pose
+    
+    def get_all_poses(self, in_shoulder:bool=False):
+        states = np.asarray(self._GetJointStates())
+        l_shoulder, l_elbow, l_wrist = self.l_arm.get_arm_points(states[:7], in_shoulder=in_shoulder)
+        r_shoulder, r_elbow, r_wrist = self.r_arm.get_arm_points(states[7:], in_shoulder=in_shoulder)
+
+        return (l_shoulder, l_elbow, l_wrist), (r_shoulder, r_shoulder, r_wrist)
+
+

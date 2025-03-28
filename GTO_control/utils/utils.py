@@ -28,6 +28,10 @@ def SE3_from_xyz_rpy(xyz, rpy):
     rot_matr = pin.rpy.rpyToMatrix(rpy)
     return pin.SE3(rot_matr, xyz)
 
+def SE3_to_xyzrpy(se3_object):
+    xyz = se3_object.translation
+    rpy = tf_to_rpy(se3_object)
+    return xyz, rpy
 
 def tf_to_rpy(tf):
     rot_matrix = tf.rotation
@@ -42,6 +46,7 @@ def set_rpy_component(tf, component_idx, new_value):
     rpy[component_idx] = new_value
     tf.rotation = pin.rpy.rpyToMatrix(rpy)
     return tf
+
 
 #########################
 #   CONTROLLER REGION   #
