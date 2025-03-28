@@ -13,7 +13,11 @@ from utils.utils import (
 
 class DecartesController(SynchronousController):
     
-    def __init__(self, is_in_local=False, network_interface=None):
+    def __init__(
+            self, 
+            is_in_local=False, 
+            network_interface=None
+            ):
 
         log(self, 'Initializing...')
 
@@ -95,7 +99,7 @@ class DecartesController(SynchronousController):
         msg = construct_arm_message(
             joint_states=np.concatenate((l_target_q, r_target_q)),
             joint_velocities=np.concatenate((l_dq, r_dq)),
-            torq_ff=np.concatenate((l_torq_ff, r_torq_ff))*0.5
+            torq_ff=np.concatenate((l_torq_ff, r_torq_ff))
             )
 
         self.ExecuteCommand(msg)

@@ -1,24 +1,29 @@
 from utils.csv_parser import Parser
+import numpy as np
 from time import time
 from time import sleep
 import pinocchio as pin
 from getch import getch
 from controllers.decartes_controller import DecartesController
+from controllers.synchronous_controller import SynchronousController
 import argparse
 from utils.utils import smooth_bringup
 from kinematics.kinematics_visualizer import KinematicsVisualizer
 import matplotlib.pyplot as plt
 
+def do_hand_plots(times, to_plot, fig=None, ax=None):
+    if fig is None or ax is None:
+        fig, ax = plt.subplots(2, 4)
+    for idx in range(7):
+        for time, data in zip(times, to_plot):
+            ax[int(idx / 4), idx % 4].plot(time, data[idx])
+            ax[int(idx / 4), idx % 4].grid()
+    plt.show()
+    return fig, ax
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('input_file', help='CSV file to read')
-    parser.add_argument(
-        '-n', 
-        '--num', 
-        help='Number of lines to read', 
-        type=int, 
-        default=1
-        )
     parser.add_argument(
         '-ni', 
         '--network-interface', 
@@ -43,21 +48,28 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+def get_all_data():
+    pass
+
 def main():
     args = parse_args()
     csv_parser = Parser(args.input_file)
     csv_parser.parse_trajectory_file()
 
     if args.use_control:
-        controller = DecartesController(network_interface=args.network_interface, is_in_local=args.local)
+        controller = DecartesController(
+            network_interface=args.network_interface, 
+            is_in_local=args.local, 
+            do_logging=True
+        )
         smooth_bringup(controller)
         _, (r_xyz, r_rpy) = controller.get_ee_xyzrpy()
 
     if args.visual:
         viz = KinematicsVisualizer()
 
-    counter = 0
     start = time()
+
     for line_num, line in enumerate(csv_parser):
         wrist_pos = line['wrist_position']
         wrist_rot = line['wrist_orientation']

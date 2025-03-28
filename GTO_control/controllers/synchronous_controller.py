@@ -1,5 +1,4 @@
 import numpy as np
-import threading
 import time
 
 from utils.arm_definitions import G1JointIndex
@@ -29,7 +28,12 @@ Kd = [
 
 class SynchronousController:
 
-    def __init__(self, network_interface:str=None, is_in_local:bool=False, command_topic="rt/arm_sdk"):
+    def __init__(
+            self, 
+            network_interface:str=None, 
+            is_in_local:bool=False, 
+            command_topic="rt/arm_sdk"
+        ):
         """Initializes a controller
 
         Args:
@@ -82,7 +86,7 @@ class SynchronousController:
             self.log('initializing for local')
             ChannelFactoryInitialize(1, "lo")
             self.command_topic = "rt/lowcmd"
-        elif network_interface != None:
+        elif network_interface is not None:
             self.log(f'initalizing with {network_interface} as interface')
             ChannelFactoryInitialize(0, network_interface)
         else:
@@ -90,6 +94,7 @@ class SynchronousController:
             ChannelFactoryInitialize(0)
 
         self.__Init()
+
 
     def __Init(self):
 
@@ -113,12 +118,12 @@ class SynchronousController:
     def log(self, msg):
         print(f'[{__name__}] ', msg)
 
-    def LowStateHandler(self, msg: LowState_):
+    def LowStateHandler(self, msg: LowState_) -> None:
         self.low_state = msg
 
         if self.first_update_low_state == False:
             self.first_update_low_state = True
-
+        
     def __SetCommand(self, targets:dict):
         """Contstructs command for all specified joints.
 
@@ -171,7 +176,7 @@ class SynchronousController:
         """
         self.low_cmd.crc = self.crc.Crc(self.low_cmd)
         self.arm_sdk_publisher.Write(self.low_cmd)
-        self.log("Command published")
+        # self.log("Command published")
 
     def ExecuteCommand(self, targets:dict):
         """Executes given target velocities and positons for given joints.
@@ -199,6 +204,18 @@ class SynchronousController:
         left = self._GetLeftJoints()
         right = self._GetRightJoints()
         return left + right
+    
+    def _GetLeftVelocities(self):
+        result = []
+        for joint in G1JointLeftArmIndex:
+            result.append(self.low_state.motor_state[joint].dq)
+        return result
+    
+    def _GetRightVelocities(self):
+        result = []
+        for joint in G1JointRightArmIndex:
+            result.append(self.low_state.motor_state[joint.dq])
+        return result
 
 def main():
     controller = SynchronousController(is_in_local=True)
