@@ -13,11 +13,23 @@ class JointLogger():
 
     def __init__(
             self,
-            is_in_local:bool=False,
             command_topic='rt/arm_sdk',
             dump_on_death:bool=True,
             local_load_file:str=None
             ):
+        """Logs data that is being published on the arm control topic and on the "rt/lowstate" topic.
+
+        Args:
+            command_topic (str, optional): 
+                Topic from which commands are logged. 
+                **When running in simulator, must be "rt/lowcmd"**
+                Defaults to 'rt/arm_sdk'.
+            dump_on_death (bool, optional): If set to true, will dump its logging dictionary as pickle file on destruction.
+                Defaults to True.
+            local_load_file (str, optional): If not none, will load a dumped file and use it as its own logs. 
+                If not None, **WILL NOT** create any subscriptions or log any messages.
+                Defaults to None.
+        """
 
         self.dump_on_death = dump_on_death
 
@@ -29,7 +41,6 @@ class JointLogger():
             return
 
         self.command_topic = command_topic
-        self.is_in_local = is_in_local
 
         self.crc = CRC()
 
@@ -59,7 +70,7 @@ class JointLogger():
         }
 
         # initalize all topics
-        self.create_subs()
+        self.__create_subs()
 
     def load_from_file(self, filename:str):
         self.skip_updates = True
@@ -82,16 +93,16 @@ class JointLogger():
         # because when loading from file,
         # nothing is initialized
 
-    def create_subs(self):
+    def __create_subs(self):
         # create sub for joint states
         self.state_sub = ChannelSubscriber("rt/lowstate", LowState_)
-        self.state_sub.Init(self.add_states, 10)
+        self.state_sub.Init(self._add_states, 10)
 
         # create sub for commands
         self.cmd_sub = ChannelSubscriber(self.command_topic, LowCmd_)
-        self.cmd_sub.Init(self.add_cmd, 10)
+        self.cmd_sub.Init(self._add_cmd, 10)
 
-    def add_states(self, msg:LowState_):
+    def _add_states(self, msg:LowState_):
         if self.skip_updates:
             return
 
@@ -109,7 +120,7 @@ class JointLogger():
         self.real_dq.append(cur_dq)
         self.real_ddq.append(cur_ddq)
 
-    def add_cmd(self, msg:LowCmd_):
+    def _add_cmd(self, msg:LowCmd_):
         if self.skip_updates:
             return
 
@@ -179,4 +190,4 @@ class JointLogger():
             self.dump_data()
 
 if __name__ == '__main__':
-    log = JointLogger("enp195s0f3u1")
+    log = JointLogger()
