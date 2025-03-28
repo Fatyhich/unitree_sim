@@ -5,12 +5,18 @@ import matplotlib.pyplot as plt
 class LoggerVisuals(JointLogger):
     def __init__(
             self, 
-            is_in_local = False, 
             command_topic='rt/arm_sdk', 
             dump_on_death = True,
             local_load_file:str=None
         ):
-        super().__init__(is_in_local, command_topic, dump_on_death=dump_on_death, local_load_file=local_load_file)
+        """A Visualisation wrapper around the base logger.
+
+        Args:
+            command_topic (str, optional): Topic from which control commands are logged. Defaults to 'rt/arm_sdk'.
+            dump_on_death (bool, optional): If true, will save its data dict as .pkl file. Defaults to True.
+            local_load_file (str, optional): If not none will load a dumped data dict file. Defaults to None.
+        """
+        super().__init__(command_topic, dump_on_death=dump_on_death, local_load_file=local_load_file)
 
     def compare_joint_states(self, joint_idx, ax=None):
         """Draws joint states and joint state control in time according to logs.
