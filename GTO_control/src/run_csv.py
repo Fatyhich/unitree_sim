@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import cv2
 
 from utils.logger import JointLogger
+from utils.logger_visuals import LoggerVisuals
 
 def do_hand_plots(times, to_plot, fig=None, ax=None):
     if fig is None or ax is None:
@@ -189,7 +190,7 @@ def main():
         print('initial states')
         print(all_states[0])
 
-    logger = JointLogger(
+    logger = LoggerVisuals(
         network_interface=args.network_interface, 
         is_in_local=args.local
     )
@@ -285,10 +286,13 @@ def main():
         joint_ids=[17],
         desired_data=["real_q"]
     )
-
-
+    # plot it by hand
     plt.plot(data["real_q"][0])
     plt.show()
+
+    # or use comparison
+    logger.compare_joint_states(17)
+    logger.compare_joint_velocities(18)
     print('FULL TIME: ', end - start)
 
 if __name__ == '__main__':
