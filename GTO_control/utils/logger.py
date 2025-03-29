@@ -15,7 +15,8 @@ class JointLogger():
             self,
             command_topic='rt/arm_sdk',
             dump_on_death:bool=True,
-            local_load_file:str=None
+            local_load_file:str=None,
+            log_name=None
             ):
         """Logs data that is being published on the arm control topic and on the "rt/lowstate" topic.
 
@@ -32,6 +33,9 @@ class JointLogger():
         """
 
         self.dump_on_death = dump_on_death
+        self.log_name = log_name
+        if log_name is None:
+            self.log_name = f'logger_dump_{time.time()}.pkl'
 
         # if loading from file
         # disable all messages
@@ -185,7 +189,9 @@ class JointLogger():
         self.skip_updates = False
         return result
     
-    def dump_data(self, filename:str=f"logger_dump_{time.time()}.pkl"):
+    def dump_data(self, filename:str=None):
+        if filename is None:
+            filename = self.log_name
         with open(filename, 'wb') as dump_file:
             pickle.dump(self.data_dict, dump_file)
         
