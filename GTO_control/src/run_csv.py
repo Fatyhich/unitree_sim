@@ -189,82 +189,32 @@ def main():
         print('initial states')
         print(all_states[0])
 
-    logger = LoggerVisuals()
+    # logger = LoggerVisuals()
 
+    max_iter = sum(1 for _ in enumerate(csv_parser))
+    real_times = np.zeros(max_iter, float)
+    target_times = np.zeros_like(real_times)
     # record starting time
+    last_cmd_time = 2 * time()
+    target_dt = 0.02
     start = time()
     for line_num, line in enumerate(csv_parser):
+        iter_start = time()
         wrist_pos = line['wrist_position']
         wrist_rot = line['wrist_orientation']
         elbow_pos = line['elbow_position']
 
-        # XXX THIS CODE IS UNSAFE
-        # XXX DO NOT RUN ON THE REAL ROBOT 
-        # XXX UNLESS YOU FIXED IT
-        if False and args.interp:
-            # shift arrays
-            all_states[:, :-1] = all_states[:, 1:]
-            times[:-1] = times[1:]
-
-            # fill most recent values
-            all_states[0, -1] = line['wrist_position']
-            all_states[1, -1] = line['wrist_orientation']
-            all_states[2, -1] = line['elbow_position']
-            times[-1] = line['time']
-
-            print('prev: ', all_states[0, 1])
-            print('next: ', all_states[0, -1])
-
-            # interpolate    
-            wrist_xyz_interp, wrist_rpy_interp, elbow_xyz_interp, new_times, new_dt = spline_interpolation(
-                wrist_positions=all_states[0],
-                wrist_orientations=all_states[1],
-                elbow_positions=all_states[2],
-                times=times
-                )
-
-            plt.plot(
-                new_times,
-                wrist_xyz_interp[:, 0]
-            )
-            plt.plot(
-                new_times,
-                wrist_xyz_interp[:, 1]
-            )
-            plt.pause(0.1)
-            while not plt.waitforbuttonpress(0):
-                pass
-
-            # execute_trajectory(
-            #     wrist_xyz_interp,
-            #     wrist_rpy_interp,
-            #     elbow_xyz_interp,
-            #     new_dt,
-            #     controller,
-            #     viz
-            # )
-
-        if args.visual:
-            # display kinematics
-            viz.inverse_kinematics(
-                (wrist_pos, wrist_rot),
-                l_elbow_target=elbow_pos,
-                origin='shoulder'
-                # (r_xyz, r_rpy)
-            )
-
-            # wait for key
-            while not plt.waitforbuttonpress(0):
-                pass
-        
         if args.use_control:
+            cur_cmd_time = time()
+            real_times[line_num] = cur_cmd_time
+            print('CURENT TIME: ', cur_cmd_time - real_times[0])
             controller.go_to(
                 l_xyzrpy=(wrist_pos, wrist_rot),
                 shoulder=True,
-                l_elbow_xyz=elbow_pos,
-                dt=0.02
+                l_elbow_xyz=elbow_pos
+                # dt=0.02
             )
-            sleep(0.02)
+
 
             # print current position
             # (l_xyz, l_rpy), _ = controller.get_ee_xyzrpy()
@@ -273,24 +223,90 @@ def main():
             # print(' rpy: ', l_rpy)
             # print('-----------------')
             # print()
-        # print('TARGET TIME: ', line['time'])
+        print('TARGET TIME: ', line['time'])
+        target_times[line_num] = line['time']
+        iter_end = time()
+        iter_time = iter_end - iter_start
+        sleep_for = np.clip(target_dt - iter_time, 0, target_dt)
+        sleep(sleep_for)
     end = time()
-
+    print('FULL TIME: ', real_times[-1] - real_times[0])
 
     # get data from logger
-    data = logger.get_data_for_joints(
-        joint_ids=[17],
-        desired_data=["real_q"]
-    )
-    # plot it by hand
-    plt.plot(data["real_q"][0])
-    plt.show()
+    # data = logger.get_data_for_joints(
+    #     joint_ids=[17],
+    #     desired_data=["real_q"]
+    # )
+    # # plot it by hand
+    # plt.plot(data["real_q"][0])
+    # plt.show()
 
-    # or use comparison
-    logger.compare_joint_states(17)
-    logger.compare_joint_velocities(18)
-    logger.plot_full_motion(G1JointIndex.LeftWristRoll)
-    print('FULL TIME: ', end - start)
+    # # or use comparison
+    # logger.compare_joint_states(17)
+    # logger.compare_joint_velocities(18)
+    # logger.plot_full_motion(G1JointIndex.LeftWristRoll)
 
 if __name__ == '__main__':
     main()
+
+
+
+        # # XXX THIS CODE IS UNSAFE
+        # # XXX DO NOT RUN ON THE REAL ROBOT 
+        # # XXX UNLESS YOU FIXED IT
+        # if False and args.interp:
+        #     # shift arrays
+        #     all_states[:, :-1] = all_states[:, 1:]
+        #     times[:-1] = times[1:]
+
+        #     # fill most recent values
+        #     all_states[0, -1] = line['wrist_position']
+        #     all_states[1, -1] = line['wrist_orientation']
+        #     all_states[2, -1] = line['elbow_position']
+        #     times[-1] = line['time']
+
+        #     print('prev: ', all_states[0, 1])
+        #     print('next: ', all_states[0, -1])
+
+        #     # interpolate    
+        #     wrist_xyz_interp, wrist_rpy_interp, elbow_xyz_interp, new_times, new_dt = spline_interpolation(
+        #         wrist_positions=all_states[0],
+        #         wrist_orientations=all_states[1],
+        #         elbow_positions=all_states[2],
+        #         times=times
+        #         )
+
+        #     plt.plot(
+        #         new_times,
+        #         wrist_xyz_interp[:, 0]
+        #     )
+        #     plt.plot(
+        #         new_times,
+        #         wrist_xyz_interp[:, 1]
+        #     )
+        #     plt.pause(0.1)
+        #     while not plt.waitforbuttonpress(0):
+        #         pass
+
+        #     # execute_trajectory(
+        #     #     wrist_xyz_interp,
+        #     #     wrist_rpy_interp,
+        #     #     elbow_xyz_interp,
+        #     #     new_dt,
+        #     #     controller,
+        #     #     viz
+        #     # )
+
+        # if args.visual:
+        #     # display kinematics
+        #     viz.inverse_kinematics(
+        #         (wrist_pos, wrist_rot),
+        #         l_elbow_target=elbow_pos,
+        #         origin='shoulder'
+        #         # (r_xyz, r_rpy)
+        #     )
+
+        #     # wait for key
+        #     while not plt.waitforbuttonpress(0):
+        #         pass
+        

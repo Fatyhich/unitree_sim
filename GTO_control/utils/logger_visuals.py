@@ -28,7 +28,7 @@ class LoggerVisuals(JointLogger):
                 Defaults to None.
         """
         if ax is None:
-            fig, ax = plt.figure()
+            fig, ax = plt.subplots()
 
         self.skip_updates = True
         real_q = np.asarray(self.real_q).T[joint_idx]
