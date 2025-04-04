@@ -25,7 +25,7 @@ class SingleArmKinematics:
         self.is_left = is_left
         self.__build_models()
         self.__create_casadi_problem()
-        self.Visualization = do_vis 
+        self.Visualization = False # do_vis 
         self.__create_visualization()
 
     def __build_models(self):
