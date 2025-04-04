@@ -82,7 +82,7 @@ def test_sine(
     cosine_velocities = np.diff(sine_positions) / dt
     for pos, vel in zip(sine_positions[:-1], cosine_velocities):
         command = {
-            joint_idx : (pos, vel)
+            joint_idx : (pos, vel, 0)
         }
         print(pos)
         controller.ExecuteCommand(command)
