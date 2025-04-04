@@ -31,7 +31,8 @@ def main():
         is_in_local=args.local
     )
     smooth_bringup(controller)
-    test_sine(controller, dt=0.01)
+    test_sine(controller, dt=0.01, joint_idx=G1JointArmIndex.LeftWristyaw)
+    smooth_bringup(controller)
 
 if __name__ == '__main__':
     main()
