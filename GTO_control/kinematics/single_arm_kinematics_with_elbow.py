@@ -97,7 +97,6 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
 
         self.init_data = np.zeros(self.reduced_robot.model.nq)
         # self.smooth_filter = WeightedMovingFilter(np.array([0.4, 0.3, 0.2, 0.1]), 14)
-        self.vis = None
 
     def __solve_ik_elbow(
             self,
@@ -137,6 +136,9 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             else:
                 v = sol_q - self.init_data
 
+            
+            if self.Visualization:
+                self.vis.display(sol_q)  # for visualization
 
             # i do not trust this stuff for now
             ###### UNCOMMENT IF NEEDED ########
