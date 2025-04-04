@@ -191,47 +191,58 @@ def main():
 
     # logger = LoggerVisuals()
 
-    max_iter = sum(1 for _ in enumerate(csv_parser))
-    real_times = np.zeros(max_iter, float)
-    target_times = np.zeros_like(real_times)
     # record starting time
     target_dt = 0.02
-    for line_num, line in enumerate(csv_parser):
-        # get iteration start time
-        iter_start = time()
 
-        # get target positions
-        wrist_pos = line['wrist_position']
-        wrist_rot = line['wrist_orientation']
-        elbow_pos = line['elbow_position']
+    # max iterations in line
+    max_lines = sum(1 for _ in enumerate(csv_parser))
+    real_times = np.zeros(max_lines, float)
+    target_times = np.zeros_like(real_times)
+    rev_data = reversed(list(enumerate(csv_parser)))
+    base_data = list(enumerate(csv_parser))
+    while True:
+        print('STARTING')
+        for line_num, line in enumerate(csv_parser):
+            # get iteration start time
+            iter_start = time()
 
-        # save target time for current command 
-        target_times[line_num] = line['time']
-        # save time to check that is is sane
-        cur_cmd_time = time()
-        real_times[line_num] = cur_cmd_time
+            # get target positions
+            wrist_pos = line['wrist_position']
+            wrist_rot = line['wrist_orientation']
+            elbow_pos = line['elbow_position']
 
-        # make sure that times align properly
-        if (real_times[line_num] - real_times[0]) > target_times[line_num]:
-            continue
+            # save target time for current command 
+            target_times[line_num] = line['time']
+            # save time to check that is is sane
+            real_times[line_num] = time()
 
-        # send command 
-        controller.go_to(
-            l_xyzrpy=(wrist_pos, wrist_rot),
-            shoulder=True,
-            l_elbow_xyz=elbow_pos
-            # dt=0.02
-        )
+            # make sure that times align properly
+            if (real_times[line_num] - real_times[0]) > line['time']:
+                continue
+
+            # send command 
+            controller.go_to(
+                l_xyzrpy=(wrist_pos, wrist_rot),
+                shoulder=True,
+                l_elbow_xyz=elbow_pos
+                # dt=0.02
+            )
 
 
-        # get iteration end time
-        iter_end = time()
-        # calculate iteration time
-        iter_time = iter_end - iter_start
-        # compensate iteration
-        sleep_for = np.clip(target_dt - iter_time, 0, target_dt)
-        sleep(sleep_for)
-    print('FULL TIME: ', real_times[-1] - real_times[0])
+            # get iteration end time
+            iter_end = time()
+            # calculate iteration time
+            iter_time = iter_end - iter_start
+            # compensate iteration
+            sleep_for = np.clip(target_dt - iter_time, 0, target_dt)
+            sleep(sleep_for)
+
+        print('END')
+        print('TARGET TIME: ', target_times[-1] - target_times[0])
+        print('FULL TIME: ', real_times[-1] - real_times[0])
+        utils.smooth_bringup(controller, dt=0.01, time=4)
+        print('-----------------------')
+        print()
 
 if __name__ == '__main__':
     main()
