@@ -195,56 +195,43 @@ def main():
     real_times = np.zeros(max_iter, float)
     target_times = np.zeros_like(real_times)
     # record starting time
-    last_cmd_time = 2 * time()
     target_dt = 0.02
-    start = time()
     for line_num, line in enumerate(csv_parser):
+        # get iteration start time
         iter_start = time()
+
+        # get target positions
         wrist_pos = line['wrist_position']
         wrist_rot = line['wrist_orientation']
         elbow_pos = line['elbow_position']
 
-        if args.use_control:
-            cur_cmd_time = time()
-            real_times[line_num] = cur_cmd_time
-            print('CURENT TIME: ', cur_cmd_time - real_times[0])
-            controller.go_to(
-                l_xyzrpy=(wrist_pos, wrist_rot),
-                shoulder=True,
-                l_elbow_xyz=elbow_pos
-                # dt=0.02
-            )
-
-
-            # print current position
-            # (l_xyz, l_rpy), _ = controller.get_ee_xyzrpy()
-            # print('-----CURRENT-----')
-            # print(' xyz: ', l_xyz)
-            # print(' rpy: ', l_rpy)
-            # print('-----------------')
-            # print()
-        print('TARGET TIME: ', line['time'])
+        # save target time for current command 
         target_times[line_num] = line['time']
+        # save time to check that is is sane
+        cur_cmd_time = time()
+        real_times[line_num] = cur_cmd_time
+
+        # make sure that times align properly
+        if (real_times[line_num] - real_times[0]) > target_times[line_num]:
+            continue
+
+        # send command 
+        controller.go_to(
+            l_xyzrpy=(wrist_pos, wrist_rot),
+            shoulder=True,
+            l_elbow_xyz=elbow_pos
+            # dt=0.02
+        )
+
+
+        # get iteration end time
         iter_end = time()
+        # calculate iteration time
         iter_time = iter_end - iter_start
+        # compensate iteration
         sleep_for = np.clip(target_dt - iter_time, 0, target_dt)
         sleep(sleep_for)
-    end = time()
     print('FULL TIME: ', real_times[-1] - real_times[0])
-
-    # get data from logger
-    # data = logger.get_data_for_joints(
-    #     joint_ids=[17],
-    #     desired_data=["real_q"]
-    # )
-    # # plot it by hand
-    # plt.plot(data["real_q"][0])
-    # plt.show()
-
-    # # or use comparison
-    # logger.compare_joint_states(17)
-    # logger.compare_joint_velocities(18)
-    # logger.plot_full_motion(G1JointIndex.LeftWristRoll)
 
 if __name__ == '__main__':
     main()
