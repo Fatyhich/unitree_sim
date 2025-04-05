@@ -58,6 +58,10 @@ def parse_args():
         help='If true will interpolate data. NOTE: DO NOT USE IT, IT IS VERY DANGEROUS. WIP.',
         action='store_true'
     )
+    parser.add_argument(
+        '--no-log', help='If true, no log will be dumped after program finishes.',
+        action='store_true'
+    )
     args = parser.parse_args()
     return args
 
@@ -235,7 +239,10 @@ def main():
         print("SIGINT received,  returning to home and saving...")
         logger.skip_updates = True
         utils.go_home(controller)
-        logger.dump_data()
+        if not args.no_log:
+            logger.dump_data()
+        else:
+            print('NOT SAVING ANY LOG')
         sys.exit(0)  # Exit gracefully
 
 if __name__ == '__main__':
