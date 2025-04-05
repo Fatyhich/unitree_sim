@@ -118,8 +118,6 @@ class SingleArmKinematics:
         self.cmodel = cpin.Model(self.reduced_robot.model)
         self.cdata = self.cmodel.createData()
 
-
-
     def __create_casadi_problem(self):
         
         # Creating symbolic variables
