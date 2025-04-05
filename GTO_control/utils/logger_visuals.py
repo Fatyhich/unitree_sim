@@ -34,8 +34,8 @@ class LoggerVisuals(JointLogger):
         real_q = np.asarray(self.real_q).T[joint_idx]
         target_q = np.asarray(self.target_q).T[joint_idx]
 
-        ax.plot(self.real_time, real_q)
-        ax.plot(self.control_time, target_q)
+        ax.plot(np.array(self.real_time)[1:] - self.real_time[0], real_q)
+        ax.plot(np.array(self.control_time)[1:] - self.control_time[0], target_q)
         self.skip_updates = False
         ax.grid()
         ax.set_xlabel("time, s")
@@ -62,8 +62,8 @@ class LoggerVisuals(JointLogger):
         real_dq = np.asarray(self.real_dq).T[joint_idx]
         target_dq = np.asarray(self.target_dq).T[joint_idx]
 
-        ax.plot(self.real_time, real_dq)
-        ax.plot(self.control_time, target_dq)
+        ax.plot(np.array(self.real_time)[1:]- self.real_time[0], real_dq)
+        ax.plot(np.array(self.control_time)[1:] - self.control_time[0], target_dq)
         self.skip_updates = False
         ax.grid()
         ax.set_xlabel("time, s")
@@ -74,7 +74,7 @@ class LoggerVisuals(JointLogger):
         if ax is None:
             plt.show()
     
-    def plot_full_motion(self, joint_idx):
+    def plot_full_motion(self, joint_idx, wait_for_key_to_close:bool=True):
         """Creates 3 subplots:
             - Comparison of real joint states and joint state controls.
             - Comparison of real joint velocities and their control.
@@ -90,11 +90,30 @@ class LoggerVisuals(JointLogger):
 
         torque = np.asarray(self.target_torq).T[joint_idx]
 
-        ax[2].plot(self.control_time, torque)
+        ax[2].plot(np.array(self.control_time)[1:] - self.control_time[0], torque)
         ax[2].grid()
         ax[2].set_xlabel("time, s")
         ax[2].set_ylabel("torque")
         ax[2].legend(
             ["torque_ff"]
         )
-        plt.show()
+        fig.suptitle(f'JOINT {joint_idx}')
+        plt.pause(0.1)
+    
+    def plot_targets(self, joint_idx):
+        fig, ax = plt.subplots(2, 1)
+
+        control_times = np.array(self.control_time)[1:] - self.control_time[0]
+        real_times = np.array(self.real_time)[1:] - self.real_time[0]
+
+        target_q = np.asarray(self.target_q).T[joint_idx]
+        target_dq = np.asarray(self.target_dq).T[joint_idx]
+
+        ax[0].plot(control_times, target_q)
+        ax[0].grid()
+
+        ax[1].plot(control_times, target_dq)
+        ax[1].grid()
+
+        fig.suptitle(f'JOINT {joint_idx}')
+        plt.pause(0.1)

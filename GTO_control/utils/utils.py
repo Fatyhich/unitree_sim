@@ -51,7 +51,7 @@ def set_rpy_component(tf, component_idx, new_value):
 #########################
 #   CONTROLLER REGION   #
 #########################
-# from synchronous_controller import SynchronousController
+from controllers.synchronous_controller import SynchronousController
 def smooth_bringup(controller, time=2.0, dt= 0.02):
     times = np.arange(0, time * 1.1, dt)
     for t in times:
@@ -88,5 +88,23 @@ def test_sine(
         controller.ExecuteCommand(command)
         sleep(dt)
 
+def go_home(
+        controller:SynchronousController,
+        total_time=6,
+        dt=0.01
+    ):
+    
+    n_steps = int(total_time / dt)
+    current_states = controller._GetJointStates()
+    total_targets = np.zeros((len(current_states), n_steps))
+    for idx in range(len(current_states)):
+        total_targets[idx] = np.linspace(current_states[idx], 0, n_steps)
 
-        
+    total_targets = total_targets.T
+
+    for idx in range(len(total_targets)):
+        msg = construct_arm_message(
+            total_targets[idx]
+        )
+        controller.ExecuteCommand(msg)
+        sleep(dt)

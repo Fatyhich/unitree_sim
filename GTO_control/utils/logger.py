@@ -73,6 +73,11 @@ class JointLogger():
             "control_time" : self.control_time
         }
 
+        # add initial time
+        start_time = time.time()
+        self.real_time.append(start_time)
+        self.control_time.append(start_time)
+
         # initalize all topics
         self.__create_subs()
 
@@ -192,6 +197,7 @@ class JointLogger():
     def dump_data(self, filename:str=None):
         if filename is None:
             filename = self.log_name
+        print('LOGGER DUMPING TO ', filename)
         with open(filename, 'wb') as dump_file:
             pickle.dump(self.data_dict, dump_file)
         
