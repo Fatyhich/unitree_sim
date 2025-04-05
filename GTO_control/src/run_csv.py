@@ -1,10 +1,8 @@
 from getch import getch
 import numpy as np
-from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 import cv2
 import argparse
-import signal
 import sys
 
 from time import time
@@ -14,6 +12,7 @@ import pinocchio as pin
 from utils import utils
 from utils.csv_parser import Parser
 from controllers.decartes_controller import DecartesController
+from controllers.interpolating_controller import InterpolatingDecartesController
 from kinematics.kinematics_visualizer import KinematicsVisualizer
 from utils.logger_visuals import LoggerVisuals
 from utils.arm_definitions import G1JointIndex
@@ -65,46 +64,6 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def spline_interpolation(wrist_positions, wrist_orientations, elbow_positions, times, target_dt=0.002):
-    """Perform cubic spline interpolation between trajectory points.
-
-    Args:
-        wrist_positions (list or np.ndarray): List of wrist positions for interpolation.
-        wrist_orientations (list or np.ndarray): List of wrist orientations for interpolation.
-        elbow_positions (list or np.ndarray): List of elbow positions for interpolation.
-        times (list or np.ndarray): List of time points corresponding to the positions.
-        target_dt (float): Desired time step for interpolation.
-
-    Returns:
-        tuple: A tuple containing:
-            - interpolated_wrist_positions (np.ndarray): Interpolated wrist positions.
-            - interpolated_wrist_orientations (np.ndarray): Interpolated wrist orientations.
-            - interpolated_elbow_positions (np.ndarray): Interpolated elbow positions.
-            - dt (float): Time difference of the interpolation (target_dt).
-    """
-
-    # Create interpolating time array
-    interp_times = np.arange(times[0], times[-1], target_dt)
-
-    # Create spline functions for positions, orientations, and elbow positions
-    wrist_spline = CubicSpline(times, wrist_positions, axis=0)
-    orientation_spline = CubicSpline(times, wrist_orientations, axis=0)
-    elbow_spline = CubicSpline(times, elbow_positions, axis=0)
-
-    # Generate interpolated data
-    interpolated_wrist_positions = wrist_spline(interp_times)
-    interpolated_wrist_orientations = orientation_spline(interp_times)
-    interpolated_elbow_positions = elbow_spline(interp_times)
-
-    # Return the interpolated data and dt
-    return (
-        interpolated_wrist_positions,
-        interpolated_wrist_orientations,
-        interpolated_elbow_positions,
-        interp_times,
-        target_dt
-    )
-
 def print_formatted_target(wrist_pos, wrist_rot, elbow_pos):
         print('-----TARGET-----')
         print(' xyz: ', wrist_pos)
@@ -144,7 +103,7 @@ def execute_trajectory(
 
 def basic_csv_run(controller:DecartesController, csv_parser:Parser):
     # record starting time
-    target_dt = 0.005
+    target_dt = 0.02
 
     # max iterations in line
     max_lines = sum(1 for _ in enumerate(csv_parser))
@@ -153,6 +112,8 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
     while True:
         skip_counter = 0
         print('STARTING')
+        real_times *= 0
+        target_times *= 0
         for line_num, line in enumerate(csv_parser):
             # get iteration start time
             iter_start = time()
@@ -175,8 +136,8 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             # send command 
             controller.go_to(
                 l_xyzrpy=(wrist_pos, wrist_rot),
+                l_elbow_xyz=elbow_pos,
                 shoulder=True,
-                l_elbow_xyz=elbow_pos
                 # dt=0.02
             )
 
@@ -189,6 +150,7 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             sleep_for = np.clip(target_dt - iter_time, 0, target_dt)
             sleep(sleep_for)
 
+
         print('END')
         print('TARGET TIME: ', target_times[-1] - target_times[0])
         print('FULL TIME: ', real_times[-1] - real_times[0])
@@ -196,7 +158,8 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         utils.go_home(controller, dt=0.01)
         print('-----------------------')
         print()
-        getch()
+        # getch()
+        # utils.go_home(controller)
 
 
 
@@ -212,10 +175,16 @@ def main():
     controller = None
     # create control if needed
     if use_control:
-        controller = DecartesController(
-            network_interface=args.network_interface, 
-            is_in_local=args.local
-        )
+        if args.interp:
+            controller = InterpolatingDecartesController(
+                network_interface=args.network_interface,
+                is_in_local=args.local
+            )
+        else:
+            controller = DecartesController(
+                network_interface=args.network_interface, 
+                is_in_local=args.local
+            )
         # bring ip up smoothly
         # utils.smooth_bringup(controller)
         utils.go_home(controller)
