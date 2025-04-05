@@ -1,8 +1,11 @@
+from getch import getch
 import numpy as np
 from scipy.interpolate import CubicSpline
 import matplotlib.pyplot as plt
 import cv2
 import argparse
+import signal
+import sys
 
 from time import time
 from time import sleep
@@ -14,6 +17,7 @@ from controllers.decartes_controller import DecartesController
 from kinematics.kinematics_visualizer import KinematicsVisualizer
 from utils.logger_visuals import LoggerVisuals
 from utils.arm_definitions import G1JointIndex
+from utils.global_meshcat import GlobalVisualizer
 
 def do_hand_plots(times, to_plot, fig=None, ax=None):
     if fig is None or ax is None:
@@ -134,73 +138,16 @@ def execute_trajectory(
         if cv2.waitKey(max(dt - (end - start), 0)) == ' ':
             utils.smooth_bringup(controller)
 
-
-def main():
-    # parse arguments
-    args = parse_args()
-    use_control = args.use_control
-
-    # create a parser and read the file
-    csv_parser = Parser(args.input_file)
-    csv_parser.parse_trajectory_file()
-
-    controller = None
-    # create control if needed
-    if use_control:
-        controller = DecartesController(
-            network_interface=args.network_interface, 
-            is_in_local=args.local
-        )
-        # bring ip up smoothly
-        utils.smooth_bringup(controller)
-        # also save xyzrpy for right hand
-        _, (r_xyz, r_rpy) = controller.get_ee_xyzrpy()
-
-    viz = None
-    # create visualizer if needed
-    if args.visual:
-        viz = KinematicsVisualizer()
-    
-    # get current poses if needed
-    if use_control and args.interp:
-        l_poses, _ = controller.get_all_poses(in_shoulder=True)
-        wrist_xyz, wrist_rpy = utils.SE3_to_xyzrpy(l_poses[2])
-        elbow_xyz = l_poses[1].translation
-    
-        # fill state arrays with poses
-        wrist_positions = np.tile(
-            wrist_xyz, (3, 1)
-        )
-        wrist_rotations = np.tile(
-            wrist_rpy, (3, 1)
-        )
-        elbow_positions = np.tile(
-            elbow_xyz, (3, 1)
-        )
-        # create some initial time
-        times = [-0.06, -0.04, -0.02]
-
-        # create array of all states for convenience
-        all_states = np.array([
-            wrist_positions,
-            wrist_rotations, 
-            elbow_positions
-        ])
-        print('initial states')
-        print(all_states[0])
-
-    # logger = LoggerVisuals()
-
+def basic_csv_run(controller:DecartesController, csv_parser:Parser):
     # record starting time
-    target_dt = 0.02
+    target_dt = 0.005
 
     # max iterations in line
     max_lines = sum(1 for _ in enumerate(csv_parser))
     real_times = np.zeros(max_lines, float)
     target_times = np.zeros_like(real_times)
-    rev_data = reversed(list(enumerate(csv_parser)))
-    base_data = list(enumerate(csv_parser))
     while True:
+        skip_counter = 0
         print('STARTING')
         for line_num, line in enumerate(csv_parser):
             # get iteration start time
@@ -218,6 +165,7 @@ def main():
 
             # make sure that times align properly
             if (real_times[line_num] - real_times[0]) > line['time']:
+                skip_counter += 1
                 continue
 
             # send command 
@@ -240,71 +188,117 @@ def main():
         print('END')
         print('TARGET TIME: ', target_times[-1] - target_times[0])
         print('FULL TIME: ', real_times[-1] - real_times[0])
-        utils.smooth_bringup(controller, dt=0.01, time=4)
+        print(f'SKIPPED: {skip_counter} total, {skip_counter/max_lines} relative')
+        utils.go_home(controller, dt=0.01)
         print('-----------------------')
         print()
+        getch()
+
+
+
+def main():
+    # parse arguments
+    args = parse_args()
+    use_control = args.use_control
+
+    # create a parser and read the file
+    csv_parser = Parser(args.input_file)
+    csv_parser.parse_trajectory_file()
+
+    controller = None
+    # create control if needed
+    if use_control:
+        controller = DecartesController(
+            network_interface=args.network_interface, 
+            is_in_local=args.local
+        )
+        # bring ip up smoothly
+        # utils.smooth_bringup(controller)
+        utils.go_home(controller)
+        # also save xyzrpy for right hand
+        _, (r_xyz, r_rpy) = controller.get_ee_xyzrpy()
+
+    viz = None
+    # create visualizer if needed
+    if args.visual:
+        viz = GlobalVisualizer(cmd_topic='rt/lowcmd')
+    
+    # get current poses if needed
+
+    logger:LoggerVisuals = LoggerVisuals(
+        command_topic='rt/lowcmd'
+    )
+
+    try:
+        basic_csv_run(controller, csv_parser)
+    except KeyboardInterrupt:
+        print("SIGINT received,  returning to home and saving...")
+        logger.skip_updates = True
+        utils.go_home(controller)
+        logger.dump_data()
+        sys.exit(0)  # Exit gracefully
 
 if __name__ == '__main__':
     main()
 
 
 
-        # # XXX THIS CODE IS UNSAFE
-        # # XXX DO NOT RUN ON THE REAL ROBOT 
-        # # XXX UNLESS YOU FIXED IT
-        # if False and args.interp:
-        #     # shift arrays
-        #     all_states[:, :-1] = all_states[:, 1:]
-        #     times[:-1] = times[1:]
+    # # XXX THIS CODE IS UNSAFE
+    # # XXX DO NOT RUN ON THE REAL ROBOT 
+    # # XXX UNLESS YOU FIXED IT
+    # if False and args.interp:
+    #     # shift arrays
+    #     all_states[:, :-1] = all_states[:, 1:]
+    #     times[:-1] = times[1:]
 
-        #     # fill most recent values
-        #     all_states[0, -1] = line['wrist_position']
-        #     all_states[1, -1] = line['wrist_orientation']
-        #     all_states[2, -1] = line['elbow_position']
-        #     times[-1] = line['time']
+    #     # fill most recent values
+    #     all_states[0, -1] = line['wrist_position']
+    #     all_states[1, -1] = line['wrist_orientation']
+    #     all_states[2, -1] = line['elbow_position']
+    #     times[-1] = line['time']
 
-        #     print('prev: ', all_states[0, 1])
-        #     print('next: ', all_states[0, -1])
+    #     print('prev: ', all_states[0, 1])
+    #     print('next: ', all_states[0, -1])
 
-        #     # interpolate    
-        #     wrist_xyz_interp, wrist_rpy_interp, elbow_xyz_interp, new_times, new_dt = spline_interpolation(
-        #         wrist_positions=all_states[0],
-        #         wrist_orientations=all_states[1],
-        #         elbow_positions=all_states[2],
-        #         times=times
-        #         )
+    #     # interpolate    
+    #     wrist_xyz_interp, wrist_rpy_interp, elbow_xyz_interp, new_times, new_dt = spline_interpolation(
+    #         wrist_positions=all_states[0],
+    #         wrist_orientations=all_states[1],
+    #         elbow_positions=all_states[2],
+    #         times=times
+    #         )
 
-        #     plt.plot(
-        #         new_times,
-        #         wrist_xyz_interp[:, 0]
-        #     )
-        #     plt.plot(
-        #         new_times,
-        #         wrist_xyz_interp[:, 1]
-        #     )
-        #     plt.pause(0.1)
-        #     while not plt.waitforbuttonpress(0):
-        #         pass
+    #     plt.plot(
+    #         new_times,
+    #         wrist_xyz_interp[:, 0]
+    #     )
+    #     plt.plot(
+    #         new_times,
+    #         wrist_xyz_interp[:, 1]
+    #     )
+    #     plt.pause(0.1)
+    #     while not plt.waitforbuttonpress(0):
+    #         pass
 
-        #     # execute_trajectory(
-        #     #     wrist_xyz_interp,
-        #     #     wrist_rpy_interp,
-        #     #     elbow_xyz_interp,
-        #     #     new_dt,
-        #     #     controller,
-        #     #     viz
-        #     # )
+    #     # execute_trajectory(
+    #     #     wrist_xyz_interp,
+    #     #     wrist_rpy_interp,
+    #     #     elbow_xyz_interp,
+    #     #     new_dt,
+    #     #     controller,
+    #     #     viz
+    #     # )
 
-        # if args.visual:
-        #     # display kinematics
-        #     viz.inverse_kinematics(
-        #         (wrist_pos, wrist_rot),
-        #         l_elbow_target=elbow_pos,
-        #         origin='shoulder'
-        #         # (r_xyz, r_rpy)
-        #     )
+    # if args.visual:
+    #     # display kinematics
+    #     viz.inverse_kinematics(
+    #         (wrist_pos, wrist_rot),
+    #         l_elbow_target=elbow_pos,
+    #         origin='shoulder'
+    #         # (r_xyz, r_rpy)
+    #     )
 
-        #     # wait for key
-        #     while not plt.waitforbuttonpress(0):
-        #         pass
+    #     # wait for key
+    #     while not plt.waitforbuttonpress(0):
+    #         pass
         
