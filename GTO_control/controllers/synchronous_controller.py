@@ -189,26 +189,26 @@ class SynchronousController:
         self.__PublishCommand()
 
     def _GetLeftJoints(self):
-        result = []
-        for joint in  G1JointLeftArmIndex:
-            result.append(self.low_state.motor_state[joint].q)
+        result = np.zeros(len(G1JointLeftArmIndex))
+        for idx, joint in  enumerate(G1JointLeftArmIndex):
+            result[idx] = self.low_state.motor_state[joint].q
         return result
 
     def _GetRightJoints(self):
-        result = []
-        for joint in G1JointRightArmIndex:
-            result.append(self.low_state.motor_state[joint].q)
+        result = np.zeros(len(G1JointRightArmIndex))
+        for idx, joint in enumerate(G1JointRightArmIndex):
+            result[idx] = self.low_state.motor_state[joint].q
         return result
     
     def _GetJointStates(self):
         left = self._GetLeftJoints()
         right = self._GetRightJoints()
-        return left + right
+        return np.concatenate((left, right))
     
     def _GetLeftVelocities(self):
-        result = []
-        for joint in G1JointLeftArmIndex:
-            result.append(self.low_state.motor_state[joint].dq)
+        result = np.zeros(len(G1JointLeftArmIndex))
+        for idx, joint in G1JointLeftArmIndex:
+            result[idx] = self.low_state.motor_state[joint].dq
         return result
     
     def _GetRightVelocities(self):
