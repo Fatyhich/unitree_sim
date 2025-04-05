@@ -38,28 +38,14 @@ class DecartesController(SynchronousController):
     def get_initial_guess(self):
         return np.asarray(self._GetLeftJoints()), np.asarray(self._GetRightJoints())
 
-    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False, l_elbow_xyz=None, r_elbow_xyz=None, dt:float=0):
-        """Moves hands in decartes space.
-
-        Args:
-            l_xyzrpy (tuple, optional): Target pose of the left wrist. 
-                Must be a tuple of 2 arrays with shape(3,): ([x, y, z], [r, p, y]),
-                Defaults to None.
-            r_xyzrpy (tuple, optional): Target pose of the right wrist. 
-                Must be a tuple of 2 arrays with shape(3,): ([x, y, z], [r, p, y]),
-                Defaults to None.
-            shoulder (bool, optional): If true, all coordinates are considered to be relative to shoulder joint. 
-                Otherwise, they are considered relative to pelvis.
-                Defaults to False.
-            l_elbow_xyz (_type_, optional): Target xyz of the left elbow. 
-                If **None**, elbow will not be considered.
-                Defaults to None.
-            r_elbow_xyz (_type_, optional): Target xyz of the right elbow. 
-                If **None**, elbow will not be considered.
-                Defaults to None.
-            dt (float, optional): If > 0, will also set joint speed. 
-                Defaults to 0.
-        """
+    def inverse_kinematics(
+            self,
+            l_xyzrpy:tuple=None,
+            r_xyzrpy:tuple=None,
+            shoulder:bool=False,
+            l_elbow_xyz=None,
+            r_elbow_xyz=None
+        ):
         # get initial guess
         l_init_guess, r_init_guess = self.get_initial_guess()
 
@@ -90,9 +76,42 @@ class DecartesController(SynchronousController):
                 elbow_xyz=r_elbow_xyz
             )
 
-        if dt > 0:
-            l_dq = (l_target_q - l_init_guess) / dt
-            r_dq = (r_target_q - r_init_guess) / dt
+        return (l_target_q, l_torq_ff), (r_target_q, r_torq_ff)
+
+    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False, l_elbow_xyz=None, r_elbow_xyz=None, dt:float=0):
+        """Moves hands in decartes space.
+
+        Args:
+            l_xyzrpy (tuple, optional): Target pose of the left wrist. 
+                Must be a tuple of 2 arrays with shape(3,): ([x, y, z], [r, p, y]),
+                Defaults to None.
+            r_xyzrpy (tuple, optional): Target pose of the right wrist. 
+                Must be a tuple of 2 arrays with shape(3,): ([x, y, z], [r, p, y]),
+                Defaults to None.
+            shoulder (bool, optional): If true, all coordinates are considered to be relative to shoulder joint. 
+                Otherwise, they are considered relative to pelvis.
+                Defaults to False.
+            l_elbow_xyz (_type_, optional): Target xyz of the left elbow. 
+                If **None**, elbow will not be considered.
+                Defaults to None.
+            r_elbow_xyz (_type_, optional): Target xyz of the right elbow. 
+                If **None**, elbow will not be considered.
+                Defaults to None.
+            dt (float, optional): If > 0, will also set joint speed. 
+                Defaults to 0.
+        """
+
+        (l_target_q, l_torq_ff), (r_target_q, r_torq_ff) = self.inverse_kinematics(
+            l_xyzrpy,
+            r_xyzrpy,
+            shoulder,
+            l_elbow_xyz,
+            r_elbow_xyz
+        )
+
+        if False: # dt > 0:
+            l_dq = (l_target_q - self._GetLeftJoints()) / dt
+            r_dq = (r_target_q - self._GetRightJoints()) / dt
         else:
             l_dq = np.zeros_like(l_target_q)
             r_dq = np.zeros_like(r_target_q)
