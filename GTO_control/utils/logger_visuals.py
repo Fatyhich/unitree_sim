@@ -34,8 +34,8 @@ class LoggerVisuals(JointLogger):
         real_q = np.asarray(self.real_q).T[joint_idx]
         target_q = np.asarray(self.target_q).T[joint_idx]
 
-        ax.plot(np.array(self.real_time)[1:] - self.real_time[0], real_q)
         ax.plot(np.array(self.control_time)[1:] - self.control_time[0], target_q)
+        ax.plot(np.array(self.real_time)[1:] - self.real_time[0], real_q)
         self.skip_updates = False
         ax.grid()
         ax.set_xlabel("time, s")
@@ -62,8 +62,8 @@ class LoggerVisuals(JointLogger):
         real_dq = np.asarray(self.real_dq).T[joint_idx]
         target_dq = np.asarray(self.target_dq).T[joint_idx]
 
-        ax.plot(np.array(self.real_time)[1:]- self.real_time[0], real_dq)
         ax.plot(np.array(self.control_time)[1:] - self.control_time[0], target_dq)
+        ax.plot(np.array(self.real_time)[1:]- self.real_time[0], real_dq)
         self.skip_updates = False
         ax.grid()
         ax.set_xlabel("time, s")
