@@ -24,7 +24,7 @@ def query_data(logger:LoggerVisuals):
         if joint_id < 0 or joint_id > 29:
             print('JOINT ID MUST BE FROM 0 TO 29')
 
-    logger.plot_targets(joint_id)
+    logger.plot_full_motion(joint_id)
     # while not plt.waitforbuttonpress(0):
         # pass
     
