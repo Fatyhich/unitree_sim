@@ -217,6 +217,56 @@ class SynchronousController:
             result.append(self.low_state.motor_state[joint.dq])
         return result
 
+    def smooth_drop(self, total_time=5.0, dt=0.01):
+        percentages = np.linspace(1, 0, int(total_time/dt), endpoint=True)
+
+        for percent in percentages:
+            # create command
+            for idx, joint in enumerate(G1JointIndex):
+                # self.low_cmd.motor_cmd[joint].q = 0.
+                # self.low_cmd.motor_cmd[joint].dq = 0.
+                # self.low_cmd.motor_cmd[joint].tau = 0.
+                # self.low_cmd.motor_cmd[joint].mode = 1
+
+                # set all joints kp and kd to default
+                # to avoid "if", 
+                # waist kp and kd are set later
+                cur_kp = self.low_cmd.motor_cmd[joint].kp 
+                cur_kd = self.low_cmd.motor_cmd[joint].kd 
+                self.low_cmd.motor_cmd[joint].kp =  min(Kp[idx] * percent, cur_kp)
+                # self.low_cmd.motor_cmd[joint].kd =  2 * cur_kd # min(Kd[idx] * percent, cur_kd)
+        
+            # self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = percent 
+        
+            self.__PublishCommand()
+            time.sleep(dt)
+
+    def smooth_bringup(self, total_time=3.0, dt=0.01):
+        percentages = np.linspace(0, 1, int(total_time/dt), endpoint=True)
+
+        for percent in percentages:
+            # create command
+            for idx, joint in enumerate(G1JointIndex):
+                self.low_cmd.motor_cmd[joint].q = 0.
+                self.low_cmd.motor_cmd[joint].dq = 0.
+                self.low_cmd.motor_cmd[joint].tau = 0.
+                self.low_cmd.motor_cmd[joint].mode = 1
+
+                # set all joints kp and kd to default
+                # to avoid "if", 
+                # waist kp and kd are set later
+                cur_kp = self.low_cmd.motor_cmd[joint].kp 
+                cur_kd = self.low_cmd.motor_cmd[joint].kd 
+                self.low_cmd.motor_cmd[joint].kp = max(Kp[idx] * percent, cur_kp)
+                self.low_cmd.motor_cmd[joint].kd = max(Kd[idx] * percent, cur_kd)
+        
+            self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = percent 
+        
+            self.__PublishCommand()
+            time.sleep(dt)
+        
+
+
 def main():
     controller = SynchronousController(is_in_local=True)
 

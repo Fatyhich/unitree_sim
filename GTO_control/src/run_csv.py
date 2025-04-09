@@ -17,6 +17,10 @@ from kinematics.kinematics_visualizer import KinematicsVisualizer
 from utils.logger_visuals import LoggerVisuals
 from utils.arm_definitions import G1JointIndex
 from utils.global_meshcat import GlobalVisualizer
+from utils.movements import (
+    go_home,
+    smooth_bringup
+)
 
 def do_hand_plots(times, to_plot, fig=None, ax=None):
     if fig is None or ax is None:
@@ -102,6 +106,20 @@ def execute_trajectory(
             utils.smooth_bringup(controller)
 
 def basic_csv_run(controller:DecartesController, csv_parser:Parser):
+    l_init_elbow_xyz = csv_parser.trajectory_data['elbow_positions'][0]
+
+    l_init_pose = (
+        csv_parser.trajectory_data['wrist_positions'][0],
+        csv_parser.trajectory_data['wrist_orientations'][0]
+    )
+
+    # controller.go_to(
+    #     l_xyzrpy=l_init_pose,
+    #     l_elbow_xyz=l_init_elbow_xyz,
+    #     shoulder=True,
+    #     dt=2
+    #     )
+
     # record starting time
     target_dt = 0.02
 
@@ -110,11 +128,31 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
     real_times = np.zeros(max_lines, float)
     target_times = np.zeros_like(real_times)
     while True:
+        l_init_elbow_xyz = csv_parser.trajectory_data['elbow_positions'][0]
+        l_init_pose = (
+            csv_parser.trajectory_data['wrist_positions'][0],
+            csv_parser.trajectory_data['wrist_orientations'][0]
+        )
+
+        print('GOING TO INITIAL POINT')
+        print('')
+        controller.go_to(
+            l_xyzrpy=l_init_pose,
+            l_elbow_xyz=l_init_elbow_xyz,
+            dt=5,
+            shoulder=True
+        )
+
         skip_counter = 0
         print('STARTING')
         real_times *= 0
         target_times *= 0
+        cur_line = 0
         for line_num, line in enumerate(csv_parser):
+            cur_line += 1
+            if cur_line > 20:
+                pass
+
             # get iteration start time
             iter_start = time()
 
@@ -138,7 +176,7 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
                 l_xyzrpy=(wrist_pos, wrist_rot),
                 l_elbow_xyz=elbow_pos,
                 shoulder=True,
-                # dt=0.02
+                dt=target_dt
             )
 
 
@@ -155,9 +193,10 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         print('TARGET TIME: ', target_times[-1] - target_times[0])
         print('FULL TIME: ', real_times[-1] - real_times[0])
         print(f'SKIPPED: {skip_counter} total, {skip_counter/max_lines} relative')
-        utils.go_home(controller, dt=0.01)
+        # utils.go_home(controller, dt=0.01, total_time=3)
         print('-----------------------')
         print()
+        go_home(controller, total_time=3)
         # getch()
         # utils.go_home(controller)
 
@@ -185,9 +224,10 @@ def main():
                 network_interface=args.network_interface, 
                 is_in_local=args.local
             )
+        controller.smooth_bringup()
         # bring ip up smoothly
         # utils.smooth_bringup(controller)
-        utils.go_home(controller)
+        # utils.go_home(controller)
         # also save xyzrpy for right hand
         _, (r_xyz, r_rpy) = controller.get_ee_xyzrpy()
 
@@ -207,7 +247,7 @@ def main():
     except KeyboardInterrupt:
         print("SIGINT received,  returning to home and saving...")
         logger.skip_updates = True
-        utils.go_home(controller)
+        go_home(controller)
         if not args.no_log:
             logger.dump_data()
         else:

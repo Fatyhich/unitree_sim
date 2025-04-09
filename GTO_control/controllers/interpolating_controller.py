@@ -9,7 +9,17 @@ class InterpolatingDecartesController(DecartesController):
         self.target_dt = target_dt
         DecartesController.__init__(self, is_in_local, network_interface)
 
-    def go_to(self, l_xyzrpy = None, r_xyzrpy = None, shoulder = False, l_elbow_xyz=None, r_elbow_xyz=None, dt=0.02):
+    def go_to(
+            self,
+            l_xyzrpy = None,
+            r_xyzrpy = None,
+            shoulder = False,
+            l_elbow_xyz=None,
+            r_elbow_xyz=None,
+            dt=0.02,
+            do_skips:bool=False
+        ):
+        call_time = time.time()
         cur_point = self._GetJointStates()
 
         (l_target_q, _), (r_target_q, _) = self.inverse_kinematics(
@@ -30,8 +40,11 @@ class InterpolatingDecartesController(DecartesController):
         # variable that tracks how long and iteration took
         real_dt = 0
 
+        execution_start = time.time()
+        retargeted_dt = dt - (execution_start - call_time)
+        retargeted_dt /= n_steps
         for q in q_values:
-            if real_dt > self.target_dt:
+            if real_dt > self.target_dt and do_skips:
                 real_dt -= self.target_dt
                 continue
             # record current time
@@ -47,6 +60,10 @@ class InterpolatingDecartesController(DecartesController):
             real_dt = iter_end - iter_start
             to_sleep = np.clip(self.target_dt - real_dt, 0, self.target_dt)
             time.sleep(to_sleep)
+
+        # send the target point just because i do not trust it
+        # msg = construct_arm_message(target_q)
+        # self.ExecuteCommand(msg)
             
 
         return super().go_to(l_xyzrpy, r_xyzrpy, shoulder, l_elbow_xyz, r_elbow_xyz, dt)

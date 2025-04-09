@@ -5,7 +5,6 @@ import argparse
 from controllers.synchronous_controller import SynchronousController
 from utils.arm_definitions import G1JointArmIndex
 from utils.arm_definitions import G1JointIndex
-from utils.utils import smooth_bringup, test_sine
 
 def process_arguments():
     parser = argparse.ArgumentParser()
@@ -30,9 +29,11 @@ def main():
         network_interface=args.network_interface, 
         is_in_local=args.local
     )
-    smooth_bringup(controller)
-    test_sine(controller, dt=0.01, joint_idx=G1JointArmIndex.LeftWristyaw)
-    smooth_bringup(controller)
+    controller.smooth_bringup()
+    controller.smooth_drop()
+    # smooth_bringup(controller)
+    # test_sine(controller, dt=0.01, joint_idx=G1JointArmIndex.LeftWristyaw)
+    # smooth_bringup(controller)
 
 if __name__ == '__main__':
     main()
