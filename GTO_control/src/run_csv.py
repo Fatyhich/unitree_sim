@@ -113,14 +113,6 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         csv_parser.trajectory_data['wrist_orientations'][0]
     )
 
-    # controller.go_to(
-    #     l_xyzrpy=l_init_pose,
-    #     l_elbow_xyz=l_init_elbow_xyz,
-    #     shoulder=True,
-    #     dt=2
-    #     )
-
-    # record starting time
     target_dt = 0.02
 
     # max iterations in line
@@ -134,8 +126,7 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             csv_parser.trajectory_data['wrist_orientations'][0]
         )
 
-        print('GOING TO INITIAL POINT')
-        print('')
+        print('GOING TO INITIAL POINT', end='\n\n')
         controller.go_to(
             l_xyzrpy=l_init_pose,
             l_elbow_xyz=l_init_elbow_xyz,
@@ -144,10 +135,11 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         )
 
         skip_counter = 0
-        print('STARTING')
         real_times *= 0
         target_times *= 0
         cur_line = 0
+        
+        print('STARTING')
         for line_num, line in enumerate(csv_parser):
             cur_line += 1
             if cur_line > 20:
@@ -224,31 +216,26 @@ def main():
                 network_interface=args.network_interface, 
                 is_in_local=args.local
             )
-        controller.smooth_bringup()
-        # bring ip up smoothly
-        # utils.smooth_bringup(controller)
-        # utils.go_home(controller)
-        # also save xyzrpy for right hand
-        _, (r_xyz, r_rpy) = controller.get_ee_xyzrpy()
+        go_home(controller)
 
     viz = None
     # create visualizer if needed
     if args.visual:
         viz = GlobalVisualizer(cmd_topic='rt/lowcmd')
     
-    # get current poses if needed
-
-    logger:LoggerVisuals = LoggerVisuals(
-        command_topic='rt/lowcmd'
-    )
+    if not args.no_log:
+        logger:LoggerVisuals = LoggerVisuals(
+            command_topic='rt/lowcmd'
+        )
 
     try:
         basic_csv_run(controller, csv_parser)
     except KeyboardInterrupt:
         print("SIGINT received,  returning to home and saving...")
-        logger.skip_updates = True
+        if logger is not None:
+            logger.skip_updates = True
         go_home(controller)
-        if not args.no_log:
+        if logger is not None:
             logger.dump_data()
         else:
             print('NOT SAVING ANY LOG')
@@ -256,65 +243,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-    # # XXX THIS CODE IS UNSAFE
-    # # XXX DO NOT RUN ON THE REAL ROBOT 
-    # # XXX UNLESS YOU FIXED IT
-    # if False and args.interp:
-    #     # shift arrays
-    #     all_states[:, :-1] = all_states[:, 1:]
-    #     times[:-1] = times[1:]
-
-    #     # fill most recent values
-    #     all_states[0, -1] = line['wrist_position']
-    #     all_states[1, -1] = line['wrist_orientation']
-    #     all_states[2, -1] = line['elbow_position']
-    #     times[-1] = line['time']
-
-    #     print('prev: ', all_states[0, 1])
-    #     print('next: ', all_states[0, -1])
-
-    #     # interpolate    
-    #     wrist_xyz_interp, wrist_rpy_interp, elbow_xyz_interp, new_times, new_dt = spline_interpolation(
-    #         wrist_positions=all_states[0],
-    #         wrist_orientations=all_states[1],
-    #         elbow_positions=all_states[2],
-    #         times=times
-    #         )
-
-    #     plt.plot(
-    #         new_times,
-    #         wrist_xyz_interp[:, 0]
-    #     )
-    #     plt.plot(
-    #         new_times,
-    #         wrist_xyz_interp[:, 1]
-    #     )
-    #     plt.pause(0.1)
-    #     while not plt.waitforbuttonpress(0):
-    #         pass
-
-    #     # execute_trajectory(
-    #     #     wrist_xyz_interp,
-    #     #     wrist_rpy_interp,
-    #     #     elbow_xyz_interp,
-    #     #     new_dt,
-    #     #     controller,
-    #     #     viz
-    #     # )
-
-    # if args.visual:
-    #     # display kinematics
-    #     viz.inverse_kinematics(
-    #         (wrist_pos, wrist_rot),
-    #         l_elbow_target=elbow_pos,
-    #         origin='shoulder'
-    #         # (r_xyz, r_rpy)
-    #     )
-
-    #     # wait for key
-    #     while not plt.waitforbuttonpress(0):
-    #         pass
-        

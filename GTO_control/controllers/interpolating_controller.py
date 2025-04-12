@@ -35,7 +35,7 @@ class InterpolatingDecartesController(DecartesController):
         # get number of interpolation steps
         n_steps = int(dt / self.target_dt)
         # interpolate
-        q_values = np.linspace(cur_point, target_q, num=n_steps, endpoint=True)
+        q_values = np.linspace(cur_point, target_q, num=n_steps + 1, endpoint=True)[1::]
 
         # variable that tracks how long and iteration took
         real_dt = 0
