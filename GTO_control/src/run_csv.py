@@ -227,6 +227,7 @@ def main():
     if args.visual:
         viz = GlobalVisualizer(cmd_topic='rt/lowcmd')
     
+    logger = None
     if not args.no_log:
         logger:LoggerVisuals = LoggerVisuals(
             command_topic='rt/lowcmd'
@@ -243,7 +244,7 @@ def main():
             logger.dump_data()
         else:
             print('NOT SAVING ANY LOG')
-        sys.exit(0)  # Exit gracefully
+        sys.exit(0)
 
 if __name__ == '__main__':
     main()
