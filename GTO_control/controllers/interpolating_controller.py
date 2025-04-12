@@ -20,45 +20,46 @@ class InterpolatingDecartesController(DecartesController):
             do_skips:bool=False
         ):
         call_time = time.time()
-        cur_point = self._GetJointStates()
+        cur_q = self._GetJointStates()
 
         (l_target_q, _), (r_target_q, _) = self.inverse_kinematics(
-            l_xyzrpy,
-            r_xyzrpy,
-            shoulder,
-            l_elbow_xyz,
-            r_elbow_xyz
+            l_xyzrpy=l_xyzrpy,
+            r_xyzrpy=r_xyzrpy,
+            shoulder=shoulder,
+            l_elbow_xyz=l_elbow_xyz,
+            r_elbow_xyz=r_elbow_xyz
         )
-
+        
         target_q = np.concatenate((l_target_q, r_target_q))
+        # if debug:
+        #     print('fk: ')
+        #     print(self.l_arm.get_ee_pose(l_target_q), False)
+        #     print('target: ', l_target_q)
 
-        # get number of interpolation steps
         n_steps = int(dt / self.target_dt)
-        # interpolate
-        q_values = np.linspace(cur_point, target_q, num=n_steps + 1, endpoint=True)[1::]
-
-        # variable that tracks how long and iteration took
-        real_dt = 0
+        dq = (target_q - cur_q) / n_steps
 
         execution_start = time.time()
-        retargeted_dt = dt - (execution_start - call_time)
-        retargeted_dt /= n_steps
-        for q in q_values:
-            if real_dt > self.target_dt and do_skips:
-                real_dt -= self.target_dt
+        time_left = dt - (execution_start - call_time)
+        new_target_dt = time_left / n_steps
+        real_dt = 0
+        for step_idx in range(n_steps):
+            cur_q += dq
+            if real_dt > new_target_dt and do_skips:
+                real_dt -= new_target_dt
                 continue
             # record current time
             iter_start = time.time()
 
             # create msg
-            msg = construct_arm_message(q)
+            msg = construct_arm_message(cur_q)
             self.ExecuteCommand(msg)
 
             # get end time
             iter_end = time.time()
 
             real_dt = iter_end - iter_start
-            to_sleep = np.clip(self.target_dt - real_dt, 0, self.target_dt)
+            to_sleep = np.clip(new_target_dt - real_dt, 0, new_target_dt)
             time.sleep(to_sleep)
 
         # send the target point just because i do not trust it
