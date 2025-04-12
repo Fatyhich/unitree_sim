@@ -16,8 +16,6 @@ parent2_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__
 sys.path.append(parent2_dir)
 pwd = os.getcwd()
 
-from utils.weighted_moving_filter import WeightedMovingFilter
-
 
 class SingleArmKinematics:
 
@@ -163,7 +161,13 @@ class SingleArmKinematics:
             self.var_q,
             self.reduced_robot.model.upperPositionLimit)
         )
-        self.opti.minimize(50 * self.translational_cost + self.rotation_cost + 0.02 * self.regularization_cost + 0.1 * self.smooth_cost)
+        self.base_cost_function = (
+            50 * self.translational_cost +
+            self.rotation_cost +
+            0.02 * self.regularization_cost +
+            0.1 * self.smooth_cost
+        )
+        self.opti.minimize(self.base_cost_function)
 
         opts = {
             'ipopt':{
@@ -177,7 +181,6 @@ class SingleArmKinematics:
         self.opti.solver("ipopt", opts)
 
         self.init_data = np.zeros(self.reduced_robot.model.nq)
-        self.smooth_filter = WeightedMovingFilter(np.array([0.4, 0.3, 0.2, 0.1]), 7)
         self.vis = None
 
     def __create_visualization(self):
@@ -294,9 +297,9 @@ class SingleArmKinematics:
 
     def pelvis_to_shoulder_xyz(self, xyz):
         shoulder_pose = self.get_shoulder_pose(np.zeros(7))
-        result = shoulder_pose.rotation @ xyz
-        result = result + shoulder_pose.translation
-        return result
+        xyz_in_shoulder = shoulder_pose.rotation @ xyz
+        xyz_in_shoulder = xyz_in_shoulder + shoulder_pose.translation
+        return xyz_in_shoulder
 
     def inverse_kinematics(self, xyz, rpy, current_motor_q=None, current_motor_dq=None, from_shoulder:bool=False):
         wrist_target = SE3_from_xyz_rpy(xyz, rpy)
@@ -325,9 +328,6 @@ class SingleArmKinematics:
 
             # get poses from solution
             sol_q = self.opti.value(self.var_q)
-            # make solution smoother
-            self.smooth_filter.add_data(sol_q)
-            sol_q = self.smooth_filter.filtered_data
 
             # save for next zeroth approximation
             self.init_data = sol_q
@@ -338,13 +338,7 @@ class SingleArmKinematics:
             else:
                 v = sol_q - self.init_data
 
-
-            # i do not trust this stuff for now
-            ###### UNCOMMENT IF NEEDED ########
             sol_tauff = pin.rnea(self.reduced_robot.model, self.reduced_robot.data, sol_q, v, np.zeros(self.reduced_robot.model.nv))
-            ##
-            ## if self.Visualization:
-            ##     self.vis.display(sol_q)  # for visualization
 
             if self.Visualization:
                 self.vis.display(sol_q)  # for visualization
@@ -355,8 +349,6 @@ class SingleArmKinematics:
             print(f"ERROR in convergence, plotting debug info.{e}")
 
             sol_q = self.opti.debug.value(self.var_q)
-            self.smooth_filter.add_data(sol_q)
-            sol_q = self.smooth_filter.filtered_data
 
             if current_arm_motor_dq is not None:
                 v = current_arm_motor_dq * 0.0

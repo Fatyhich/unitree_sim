@@ -74,7 +74,7 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             self.elbow_var_q,
             self.reduced_robot.model.upperPositionLimit)
         )
-        self.elbow_opti.minimize(
+        self.total_elbow_cost = (
             50 * self.wrist_translational_cost + 
             self.wrist_rotation_cost + 
             0.02 * self.elbow_regularization_cost + 
@@ -82,7 +82,9 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             50 * self.elbow_translational_cost +
             0 * self.joint_cost
         )
-        print('am i even here?')
+        self.elbow_opti.minimize(
+            self.total_elbow_cost
+        )
 
         opts = {
             'ipopt':{
@@ -106,8 +108,9 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             current_arm_motor_dq=None,
             ):
         # set init guess
-        if current_arm_motor_dq is not None:
+        if current_arm_motor_q is not None:
             self.init_data = current_arm_motor_q
+
         self.elbow_opti.set_initial(
             self.elbow_var_q,
             self.init_data
@@ -124,9 +127,6 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             # get q joints
             sol_q = self.elbow_opti.value(self.elbow_var_q)
 
-            self.smooth_filter.add_data(sol_q)
-            sol_q = self.smooth_filter.filtered_data
-
             # save for next zeroth approximation
             self.init_data = sol_q
 
@@ -140,8 +140,6 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             if self.Visualization:
                 self.vis.display(sol_q)  # for visualization
 
-            # i do not trust this stuff for now
-            ###### UNCOMMENT IF NEEDED ########
             sol_tauff = pin.rnea(self.reduced_robot.model, self.reduced_robot.data, sol_q, v, np.zeros(self.reduced_robot.model.nv))
 
             return sol_q, sol_tauff
@@ -150,8 +148,6 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
             print(f"ERROR in convergence, plotting debug info.{e}")
 
             sol_q = self.elbow_opti.debug.value(self.elbow_var_q)
-            self.smooth_filter.add_data(sol_q)
-            sol_q = self.smooth_filter.filtered_data
 
             if current_arm_motor_dq is not None:
                 v = current_arm_motor_dq#  * 0.0
@@ -187,6 +183,7 @@ class SingleArmKinematicsWithElbow(SingleArmKinematics):
         if from_shoulder:
             wrist_target = self.pelvis_to_shoulder(wrist_target)
             elbow_xyz = self.pelvis_to_shoulder_xyz(elbow_xyz)
+        
         return self.__solve_ik_elbow(
             wrist_target=wrist_target.homogeneous,
             elbow_target_xyz=elbow_xyz,
