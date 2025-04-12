@@ -17,6 +17,7 @@ class InterpolatingDecartesController(DecartesController):
             l_elbow_xyz=None,
             r_elbow_xyz=None,
             dt=0.02,
+            use_velocity:bool=True,
             do_skips:bool=False
         ):
         call_time = time.time()
@@ -38,6 +39,7 @@ class InterpolatingDecartesController(DecartesController):
 
         n_steps = int(dt / self.target_dt)
         dq = (target_q - cur_q) / n_steps
+        velocitites = dq / self.target_dt
 
         execution_start = time.time()
         time_left = dt - (execution_start - call_time)
@@ -52,7 +54,10 @@ class InterpolatingDecartesController(DecartesController):
             iter_start = time.time()
 
             # create msg
-            msg = construct_arm_message(cur_q)
+            msg = construct_arm_message(
+                joint_states=cur_q,
+                joint_velocities=velocitites if use_velocity else None
+            )
             self.ExecuteCommand(msg)
 
             # get end time
