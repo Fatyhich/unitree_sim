@@ -126,14 +126,19 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             csv_parser.trajectory_data['wrist_orientations'][0]
         )
 
-        print('GOING TO INITIAL POINT', end='\n\n')
+        print('GOING TO INITIAL POINT', end='\n')
+        # print('init point: ')
+        # print_formatted_target(
+        #     l_init_pose[0],
+        #     l_init_pose[1],
+        #     l_init_elbow_xyz
+        # )
         controller.go_to(
             l_xyzrpy=l_init_pose,
             l_elbow_xyz=l_init_elbow_xyz,
             dt=5,
             shoulder=True
         )
-
         skip_counter = 0
         real_times *= 0
         target_times *= 0
@@ -185,7 +190,6 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         print('TARGET TIME: ', target_times[-1] - target_times[0])
         print('FULL TIME: ', real_times[-1] - real_times[0])
         print(f'SKIPPED: {skip_counter} total, {skip_counter/max_lines} relative')
-        # utils.go_home(controller, dt=0.01, total_time=3)
         print('-----------------------')
         print()
         go_home(controller, total_time=3)
