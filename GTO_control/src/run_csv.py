@@ -136,13 +136,13 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         #     l_init_elbow_xyz
         # )
         print('GOING HOME')
-        go_home(controller, total_time=5)
+        # go_home(controller, total_time=5)
 
         print('GOING TO INITIAL POINT', end='\n')
         controller.go_to(
             l_xyzrpy=l_init_pose,
             l_elbow_xyz=l_init_elbow_xyz,
-            dt=0.5,
+            dt=5,
             shoulder=True
         )
         skip_counter = 0
