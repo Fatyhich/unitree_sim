@@ -17,7 +17,7 @@ class InterpolatingDecartesController(DecartesController):
             l_elbow_xyz=None,
             r_elbow_xyz=None,
             dt=0.02,
-            use_velocity:bool=True,
+            use_velocity:bool=False,
             do_skips:bool=False
         ):
         call_time = time.time()
@@ -32,10 +32,6 @@ class InterpolatingDecartesController(DecartesController):
         )
         target_q = np.concatenate((l_target_q, r_target_q))
         target_tauff = np.concatenate((l_tauff, r_tauff))
-        # if debug:
-        #     print('fk: ')
-        #     print(self.l_arm.get_ee_pose(l_target_q), False)
-        #     print('target: ', l_target_q)
 
         n_steps = int(dt / self.target_dt)
         dq = (target_q - cur_q) / n_steps
@@ -59,11 +55,7 @@ class InterpolatingDecartesController(DecartesController):
                 joint_velocities=velocitites if use_velocity else None,
                 torq_ff=target_tauff
             )
-            if use_velocity:
-                if np.allclose(velocitites, np.zeros_like(velocitites)):
-                    print('all close')
-            else:
-                print('not using velocity')
+
             self.ExecuteCommand(msg)
 
             # get end time

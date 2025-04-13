@@ -7,6 +7,7 @@ from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowCmd_, LowState_           
 from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowCmd_
 from unitree_sdk2py.utils.crc import CRC
 from utils.arm_definitions import G1JointLeftArmIndex, G1JointRightArmIndex
+from utils.utils import construct_arm_message
 
 Kp = [
     60, 60, 60, 100, 40, 40,      # legs
@@ -25,6 +26,8 @@ Kd = [
     1, 1, 1, 1, 1, 1, 1,  # arms 
     0                     # not used joint
 ]
+
+DQ_LIMIT = 3
 
 class SynchronousController:
 
@@ -65,7 +68,8 @@ class SynchronousController:
         self.low_state = None 
         self.first_update_low_state = False
         self.crc = CRC()
-        self.done = False
+        self._CONTROL_LOCKED = False
+        self._UPDATES_LOCKED = False
 
         # set joitns
         self.arm_joints = [
@@ -115,11 +119,33 @@ class SynchronousController:
 
         self.log("Joint State Initialized")
 
+    def lock(self):
+        return
+        if self._CONTROL_LOCKED or self._UPDATES_LOCKED:   
+            return
+        self._UPDATES_LOCKED = True
+        self._CONTROL_LOCKED = True
+        print('CONTROLLER LOCKED')
+        print('-----------------')
+
     def log(self, msg):
         print(f'[{__name__}] ', msg)
 
+    def check_safety(self):
+        for idx, joint in enumerate(G1JointIndex):
+            cur_vel = self.low_state.motor_state[joint].dq
+            if abs(cur_vel) > DQ_LIMIT:
+                self.lock()
+                print(f'SAFETY VIOLATED ON JOINT {idx}(', joint, ')', sep='')
+                print(f'CURRENT LIMIT: {DQ_LIMIT}')
+                print(f'VELOCITY VIOL: {cur_vel}')
+    
     def LowStateHandler(self, msg: LowState_) -> None:
+        if self._UPDATES_LOCKED:
+            return
         self.low_state = msg
+        if False:
+            self.check_safety()
 
         if self.first_update_low_state == False:
             self.first_update_low_state = True
@@ -185,6 +211,9 @@ class SynchronousController:
             targets (dict): Keys are joint indeces, 
                 values are pairs of joint position and velocity (q, dq)
         """
+        if self._CONTROL_LOCKED:
+            print('ERROR TRYING TO EXECUTE COMMAND ON LOCKED CONTROLLER')
+            raise RuntimeError
         self.__SetCommand(targets)
         self.__PublishCommand()
 
@@ -216,56 +245,6 @@ class SynchronousController:
         for joint in G1JointRightArmIndex:
             result.append(self.low_state.motor_state[joint.dq])
         return result
-
-    def smooth_drop(self, total_time=5.0, dt=0.01):
-        percentages = np.linspace(1, 0, int(total_time/dt), endpoint=True)
-
-        for percent in percentages:
-            # create command
-            for idx, joint in enumerate(G1JointIndex):
-                # self.low_cmd.motor_cmd[joint].q = 0.
-                # self.low_cmd.motor_cmd[joint].dq = 0.
-                # self.low_cmd.motor_cmd[joint].tau = 0.
-                # self.low_cmd.motor_cmd[joint].mode = 1
-
-                # set all joints kp and kd to default
-                # to avoid "if", 
-                # waist kp and kd are set later
-                cur_kp = self.low_cmd.motor_cmd[joint].kp 
-                cur_kd = self.low_cmd.motor_cmd[joint].kd 
-                self.low_cmd.motor_cmd[joint].kp =  min(Kp[idx] * percent, cur_kp)
-                # self.low_cmd.motor_cmd[joint].kd =  2 * cur_kd # min(Kd[idx] * percent, cur_kd)
-        
-            # self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = percent 
-        
-            self.__PublishCommand()
-            time.sleep(dt)
-
-    def smooth_bringup(self, total_time=3.0, dt=0.01):
-        percentages = np.linspace(0, 1, int(total_time/dt), endpoint=True)
-
-        for percent in percentages:
-            # create command
-            for idx, joint in enumerate(G1JointIndex):
-                self.low_cmd.motor_cmd[joint].q = 0.
-                self.low_cmd.motor_cmd[joint].dq = 0.
-                self.low_cmd.motor_cmd[joint].tau = 0.
-                self.low_cmd.motor_cmd[joint].mode = 1
-
-                # set all joints kp and kd to default
-                # to avoid "if", 
-                # waist kp and kd are set later
-                cur_kp = self.low_cmd.motor_cmd[joint].kp 
-                cur_kd = self.low_cmd.motor_cmd[joint].kd 
-                self.low_cmd.motor_cmd[joint].kp = max(Kp[idx] * percent, cur_kp)
-                self.low_cmd.motor_cmd[joint].kd = max(Kd[idx] * percent, cur_kd)
-        
-            self.low_cmd.motor_cmd[G1JointIndex.NotUsedJoint0].q = percent 
-        
-            self.__PublishCommand()
-            time.sleep(dt)
-        
-
 
 def main():
     controller = SynchronousController(is_in_local=True)

@@ -9,7 +9,6 @@ from unitree_sdk2py.idl.default import unitree_hg_msg_dds__LowState_
 from controllers.synchronous_controller import SynchronousController
 from unitree_sdk2py.idl.unitree_hg.msg.dds_ import LowState_
 from unitree_sdk2py.utils.thread import RecurrentThread
-from utils import movements
 
 
 class SafetyMonitor:
@@ -211,8 +210,8 @@ class SafetyMonitor:
         self.emergency_triggered = True
         print("[SafetyMonitor] EMERGENCY STOP TRIGGERED")
         
-        while movements.go_home(self.controller):
-            print("[SafetyMonitor] Going home")
+        print("[SafetyMonitor] Going home")
+        movements.go_home(self.controller)
 
         print("Press any key to continue")
         getch()

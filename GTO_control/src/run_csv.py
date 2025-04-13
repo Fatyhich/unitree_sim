@@ -17,6 +17,7 @@ from kinematics.kinematics_visualizer import KinematicsVisualizer
 from utils.logger_visuals import LoggerVisuals
 from utils.arm_definitions import G1JointIndex
 from utils.global_meshcat import GlobalVisualizer
+from utils.safety_monitoring import SafetyMonitor
 from utils.movements import (
     go_home,
     smooth_bringup
@@ -119,6 +120,8 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
     max_lines = sum(1 for _ in enumerate(csv_parser))
     real_times = np.zeros(max_lines, float)
     target_times = np.zeros_like(real_times)
+
+    RMSE = 0
     while True:
         l_init_elbow_xyz = csv_parser.trajectory_data['elbow_positions'][0]
         l_init_pose = (
@@ -126,17 +129,20 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             csv_parser.trajectory_data['wrist_orientations'][0]
         )
 
-        print('GOING TO INITIAL POINT', end='\n')
         # print('init point: ')
         # print_formatted_target(
         #     l_init_pose[0],
         #     l_init_pose[1],
         #     l_init_elbow_xyz
         # )
+        print('GOING HOME')
+        go_home(controller, total_time=5)
+
+        print('GOING TO INITIAL POINT', end='\n')
         controller.go_to(
             l_xyzrpy=l_init_pose,
             l_elbow_xyz=l_init_elbow_xyz,
-            dt=5,
+            dt=0.5,
             shoulder=True
         )
         skip_counter = 0
@@ -144,6 +150,8 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         target_times *= 0
         cur_line = 0
         
+        positions = np.zeros((max_lines, 3), float)
+        rotations = np.zeros((max_lines, 3), float)
         print('STARTING')
         for line_num, line in enumerate(csv_parser):
             cur_line += 1
@@ -157,6 +165,10 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             wrist_pos = line['wrist_position']
             wrist_rot = line['wrist_orientation']
             elbow_pos = line['elbow_position']
+
+            (l_xyz, l_rpy), _ = controller.get_ee_xyzrpy()
+            positions[line_num] = l_xyz
+            rotations[line_num] = l_rpy
 
             # save target time for current command 
             target_times[line_num] = line['time']
@@ -190,9 +202,24 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         print('TARGET TIME: ', target_times[-1] - target_times[0])
         print('FULL TIME: ', real_times[-1] - real_times[0])
         print(f'SKIPPED: {skip_counter} total, {skip_counter/max_lines} relative')
+        # calculate rmse
+        wrist_positions = csv_parser.trajectory_data['wrist_positions']
+        pos_error = positions[1:] - wrist_positions[:-1]
+        pos_error = pos_error * pos_error
+        pos_error = np.sum(pos_error) / pos_error.size
+        pos_error = np.sqrt(pos_error)
+        print('POSITION RMSE: ', pos_error)
+        wrist_orientations = csv_parser.trajectory_data['wrist_orientations']
+        rot_error = rotations[1:] - wrist_orientations[:-1]
+        rot_error = rot_error * rot_error
+        rot_error = np.sum(rot_error) / rot_error.size
+        rot_error = np.sqrt(rot_error)
+        print('ROTATION RMSE: ', rot_error)
         print('-----------------------')
         print()
-        go_home(controller, total_time=3)
+        # go_home(controller, total_time=3)
+        
+
         # getch()
         # utils.go_home(controller)
 
@@ -208,35 +235,45 @@ def main():
     csv_parser.parse_trajectory_file()
 
     controller = None
-    # create control if needed
-    if use_control:
-        if args.interp:
-            controller = InterpolatingDecartesController(
-                network_interface=args.network_interface,
-                is_in_local=args.local
-            )
-        else:
-            controller = DecartesController(
-                network_interface=args.network_interface, 
-                is_in_local=args.local
-            )
-        go_home(controller)
-
     viz = None
-    # create visualizer if needed
-    if args.visual:
-        viz = GlobalVisualizer(cmd_topic='rt/lowcmd')
-    
     logger = None
-    if not args.no_log:
-        logger:LoggerVisuals = LoggerVisuals(
-            command_topic='rt/lowcmd'
-        )
 
     try:
+        # create control if needed
+        if use_control:
+            if args.interp:
+                controller = InterpolatingDecartesController(
+                    network_interface=args.network_interface,
+                    is_in_local=args.local
+                )
+            else:
+                controller = DecartesController(
+                    network_interface=args.network_interface, 
+                    is_in_local=args.local
+                )
+        smooth_bringup(controller, time=3, dt=0.01)
+        # go_home(controller)
+
+        # create visualizer if needed
+        if args.visual:
+            viz = GlobalVisualizer(cmd_topic='rt/lowcmd')
+    
+        if not args.no_log:
+            logger:LoggerVisuals = LoggerVisuals(
+                command_topic='rt/lowcmd'
+            )
+        
+
         basic_csv_run(controller, csv_parser)
     except KeyboardInterrupt:
         print("SIGINT received,  returning to home and saving...")
+    except RuntimeError:
+        print('RUNTIME ERROR, PROBABLY SAFETY VIOLATION')
+    except Exception as e:
+        print(e)
+        raise e
+    finally:
+        print()
         if logger is not None:
             logger.skip_updates = True
         go_home(controller)
