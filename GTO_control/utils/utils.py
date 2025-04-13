@@ -24,6 +24,26 @@ def construct_arm_message(joint_states, joint_velocities=None, torq_ff=None):
 
     return msg
 
+def arm_msg_array(joint_states, joint_velocities=None, torq_ff=None):
+    """NOT READY, DO NOT USE"""
+    if len(joint_states) != len(G1JointArmIndex):
+        print('ERROR(contstruct_arm_message): LENGTH OF JOINT STATES MUST BE EQUAL TO THE NUMBER OF ARM JOINTS.')
+    
+    msg_shape = (len(G1JointArmIndex), 3)
+    msg = np.zeros(msg_shape, float)
+
+    msg[:, 0] = joint_states
+
+    # if vels are none, use default zeros
+    if joint_velocities is None:
+        msg[:, 1] = joint_velocities
+
+    # if torqs are None, use zeros
+    if torq_ff is None:
+        msg[:, 2] = torq_ff
+
+    return msg
+
 def SE3_from_xyz_rpy(xyz, rpy):
     rot_matr = pin.rpy.rpyToMatrix(rpy)
     return pin.SE3(rot_matr, xyz)
