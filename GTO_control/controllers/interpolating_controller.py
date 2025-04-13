@@ -23,15 +23,15 @@ class InterpolatingDecartesController(DecartesController):
         call_time = time.time()
         cur_q = self._GetJointStates()
 
-        (l_target_q, _), (r_target_q, _) = self.inverse_kinematics(
+        (l_target_q, l_tauff), (r_target_q, r_tauff) = self.inverse_kinematics(
             l_xyzrpy=l_xyzrpy,
             r_xyzrpy=r_xyzrpy,
             shoulder=shoulder,
             l_elbow_xyz=l_elbow_xyz,
             r_elbow_xyz=r_elbow_xyz
         )
-        
         target_q = np.concatenate((l_target_q, r_target_q))
+        target_tauff = np.concatenate((l_tauff, r_tauff))
         # if debug:
         #     print('fk: ')
         #     print(self.l_arm.get_ee_pose(l_target_q), False)
@@ -56,8 +56,14 @@ class InterpolatingDecartesController(DecartesController):
             # create msg
             msg = construct_arm_message(
                 joint_states=cur_q,
-                joint_velocities=velocitites if use_velocity else None
+                joint_velocities=velocitites if use_velocity else None,
+                torq_ff=target_tauff
             )
+            if use_velocity:
+                if np.allclose(velocitites, np.zeros_like(velocitites)):
+                    print('all close')
+            else:
+                print('not using velocity')
             self.ExecuteCommand(msg)
 
             # get end time
@@ -71,5 +77,3 @@ class InterpolatingDecartesController(DecartesController):
         # msg = construct_arm_message(target_q)
         # self.ExecuteCommand(msg)
             
-
-        return super().go_to(l_xyzrpy, r_xyzrpy, shoulder, l_elbow_xyz, r_elbow_xyz, dt)
