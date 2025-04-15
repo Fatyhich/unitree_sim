@@ -48,8 +48,8 @@ def parse_args():
         action='store_true'
         )
     parser.add_argument(
-        '-uc', '--use-control', 
-        help='If true, a controller will be created that will execute everything.', 
+        '-nc', '--no-control', 
+        help='If set, no controller will be created to execute everything.', 
         action='store_true'
     )
     parser.add_argument(
@@ -228,7 +228,8 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
 def main():
     # parse arguments
     args = parse_args()
-    use_control = args.use_control
+    use_control = not args.no_control
+    interpolate = args.interp
 
     # create a parser and read the file
     csv_parser = Parser(args.input_file)
@@ -241,7 +242,7 @@ def main():
     try:
         # create control if needed
         if use_control:
-            if args.interp:
+            if interpolate:
                 controller = InterpolatingDecartesController(
                     network_interface=args.network_interface,
                     is_in_local=args.local
