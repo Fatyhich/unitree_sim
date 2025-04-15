@@ -2,11 +2,13 @@ import numpy as np
 import time
 from controllers.decartes_controller import DecartesController
 from utils.utils import construct_arm_message
+from utils.arm_definitions import G1JointArmIndex
 
 class InterpolatingDecartesController(DecartesController):
 
     def __init__(self, is_in_local=False, network_interface=None, target_dt = 0.005):
         self.target_dt = target_dt
+        self.last_target_joints = np.zeros(len(G1JointArmIndex), float)
         DecartesController.__init__(self, is_in_local, network_interface)
 
     def go_to(
@@ -21,7 +23,6 @@ class InterpolatingDecartesController(DecartesController):
             do_skips:bool=False
         ):
         call_time = time.time()
-        cur_q = self._GetJointStates()
 
         (l_target_q, l_tauff), (r_target_q, r_tauff) = self.inverse_kinematics(
             l_xyzrpy=l_xyzrpy,
@@ -34,13 +35,14 @@ class InterpolatingDecartesController(DecartesController):
         target_tauff = np.concatenate((l_tauff, r_tauff))
 
         n_steps = int(dt / self.target_dt)
-        dq = (target_q - cur_q) / n_steps
+        dq = (target_q - self.last_target_joints) / n_steps
         velocitites = dq / self.target_dt
 
         execution_start = time.time()
         time_left = dt - (execution_start - call_time)
         new_target_dt = time_left / n_steps
         real_dt = 0
+        cur_q = self.last_target_joints
         for step_idx in range(n_steps):
             cur_q += dq
             if real_dt > new_target_dt and do_skips:
@@ -65,6 +67,7 @@ class InterpolatingDecartesController(DecartesController):
             to_sleep = np.clip(new_target_dt - real_dt, 0, new_target_dt)
             time.sleep(to_sleep)
 
+        self.last_target_joints = target_q
         # send the target point just because i do not trust it
         # msg = construct_arm_message(target_q)
         # self.ExecuteCommand(msg)
