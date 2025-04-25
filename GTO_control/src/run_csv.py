@@ -48,18 +48,13 @@ def parse_args():
         action='store_true'
         )
     parser.add_argument(
-        '-nc', '--no-control', 
-        help='If set, no controller will be created to execute everything.', 
-        action='store_true'
-    )
-    parser.add_argument(
         '-v', '--visual',
         help='If True, will also display kinematics of the robot',
         action='store_true'
     )
     parser.add_argument(
-        '--interp', 
-        help='If true will interpolate data. NOTE: DO NOT USE IT, IT IS VERY DANGEROUS. WIP.',
+        '--no-interp', 
+        help='If set, will not interpolate data resulting in jerkier movement.',
         action='store_true'
     )
     parser.add_argument(
@@ -135,14 +130,12 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         #     l_init_pose[1],
         #     l_init_elbow_xyz
         # )
-        print('GOING HOME')
-        # go_home(controller, total_time=5)
 
         print('GOING TO INITIAL POINT', end='\n')
         controller.go_to(
             l_xyzrpy=l_init_pose,
             l_elbow_xyz=l_init_elbow_xyz,
-            dt=5,
+            dt=10,
             shoulder=True
         )
         skip_counter = 0
@@ -188,7 +181,6 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
                 dt=target_dt
             )
 
-
             # get iteration end time
             iter_end = time()
             # calculate iteration time
@@ -197,11 +189,11 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             sleep_for = np.clip(target_dt - iter_time, 0, target_dt)
             sleep(sleep_for)
 
-
         print('END')
         print('TARGET TIME: ', target_times[-1] - target_times[0])
         print('FULL TIME: ', real_times[-1] - real_times[0])
         print(f'SKIPPED: {skip_counter} total, {skip_counter/max_lines} relative')
+
         # calculate rmse
         wrist_positions = csv_parser.trajectory_data['wrist_positions']
         pos_error = positions[1:] - wrist_positions[:-1]
@@ -209,27 +201,22 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         pos_error = np.sum(pos_error) / pos_error.size
         pos_error = np.sqrt(pos_error)
         print('POSITION RMSE: ', pos_error)
+
         wrist_orientations = csv_parser.trajectory_data['wrist_orientations']
         rot_error = rotations[1:] - wrist_orientations[:-1]
         rot_error = rot_error * rot_error
         rot_error = np.sum(rot_error) / rot_error.size
         rot_error = np.sqrt(rot_error)
         print('ROTATION RMSE: ', rot_error)
+
         print('-----------------------')
         print()
         # go_home(controller, total_time=3)
         
-
-        # getch()
-        # utils.go_home(controller)
-
-
-
 def main():
     # parse arguments
     args = parse_args()
-    use_control = not args.no_control
-    interpolate = args.interp
+    interpolate = not args.no_interp
 
     # create a parser and read the file
     csv_parser = Parser(args.input_file)
@@ -241,19 +228,17 @@ def main():
 
     try:
         # create control if needed
-        if use_control:
-            if interpolate:
-                controller = InterpolatingDecartesController(
-                    network_interface=args.network_interface,
-                    is_in_local=args.local
-                )
-            else:
-                controller = DecartesController(
-                    network_interface=args.network_interface, 
-                    is_in_local=args.local
-                )
+        if interpolate:
+            controller = InterpolatingDecartesController(
+                network_interface=args.network_interface,
+                is_in_local=args.local
+            )
+        else:
+            controller = DecartesController(
+                network_interface=args.network_interface, 
+                is_in_local=args.local
+            )
         smooth_bringup(controller, time=3, dt=0.01)
-        # go_home(controller)
 
         # create visualizer if needed
         if args.visual:
@@ -263,9 +248,9 @@ def main():
             logger:LoggerVisuals = LoggerVisuals(
                 command_topic='rt/lowcmd'
             )
-        
 
         basic_csv_run(controller, csv_parser)
+
     except KeyboardInterrupt:
         print("SIGINT received,  returning to home and saving...")
     except RuntimeError:

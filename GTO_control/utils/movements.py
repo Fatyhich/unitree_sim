@@ -61,6 +61,7 @@ def go_home(
         total_time=6,
         dt=0.01
     ):
+    print('GOING HOME')
     
     n_steps = int(total_time / dt)
     controller._UPDATES_LOCKED = False

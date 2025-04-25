@@ -78,7 +78,15 @@ class DecartesController(SynchronousController):
 
         return (l_target_q, l_torq_ff), (r_target_q, r_torq_ff)
 
-    def go_to(self, l_xyzrpy:tuple=None, r_xyzrpy:tuple=None, shoulder:bool=False, l_elbow_xyz=None, r_elbow_xyz=None, dt:float=0):
+    def go_to(
+            self,
+            l_xyzrpy:tuple=None,
+            r_xyzrpy:tuple=None,
+            shoulder:bool=False,
+            l_elbow_xyz=None,
+            r_elbow_xyz=None,
+            dt:float=0
+            ):
         """Moves hands in decartes space.
 
         Args:
