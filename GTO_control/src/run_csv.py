@@ -61,6 +61,10 @@ def parse_args():
         '--no-log', help='If true, no log will be dumped after program finishes.',
         action='store_true'
     )
+    parser.add_argument(
+        '--no-safety', help='If set to true, safety will not be monitored. NOTE: MAY BE DANGEROUS.',
+        action='store_true'
+    )
     args = parser.parse_args()
     return args
 
@@ -217,6 +221,7 @@ def main():
     # parse arguments
     args = parse_args()
     interpolate = not args.no_interp
+    use_safety = not args.no_safety
 
     # create a parser and read the file
     csv_parser = Parser(args.input_file)
@@ -231,12 +236,14 @@ def main():
         if interpolate:
             controller = InterpolatingDecartesController(
                 network_interface=args.network_interface,
-                is_in_local=args.local
+                is_in_local=args.local,
+                do_safety_checks=use_safety
             )
         else:
             controller = DecartesController(
                 network_interface=args.network_interface, 
-                is_in_local=args.local
+                is_in_local=args.local,
+                do_safety_checks=use_safety
             )
         smooth_bringup(controller, time=3, dt=0.01)
 

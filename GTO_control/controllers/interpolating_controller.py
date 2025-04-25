@@ -6,10 +6,23 @@ from utils.arm_definitions import G1JointArmIndex
 
 class InterpolatingDecartesController(DecartesController):
 
-    def __init__(self, is_in_local=False, network_interface=None, target_dt = 0.005):
+    def __init__(
+            self,
+            is_in_local=False,
+            network_interface=None,
+            target_dt = 0.005, 
+            do_safety_checks:bool=True,
+            safety_limit:float=3.
+            ):
         self.target_dt = target_dt
         self.last_target_joints = np.zeros(len(G1JointArmIndex), float)
-        DecartesController.__init__(self, is_in_local, network_interface)
+        DecartesController.__init__(
+            self,
+            is_in_local,
+            network_interface,
+            do_safety_checks=do_safety_checks,
+            safety_limit=safety_limit
+            )
 
     def go_to(
             self,

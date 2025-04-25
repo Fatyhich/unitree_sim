@@ -17,7 +17,9 @@ class DecartesController(SynchronousController):
     def __init__(
             self, 
             is_in_local=False, 
-            network_interface=None
+            network_interface=None,
+            do_safety_checks:bool=True,
+            safety_limit:float=3.
             ):
 
         log(self, 'Initializing...')
@@ -26,7 +28,9 @@ class DecartesController(SynchronousController):
         SynchronousController.__init__(
             self, 
             network_interface=network_interface, 
-            is_in_local=is_in_local
+            is_in_local=is_in_local,
+            do_safety_checks=do_safety_checks,
+            safety_limit=safety_limit
             )
         
         # initialize arm

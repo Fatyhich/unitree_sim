@@ -27,15 +27,15 @@ Kd = [
     0                     # not used joint
 ]
 
-DQ_LIMIT = 3
-
 class SynchronousController:
 
     def __init__(
             self, 
             network_interface:str=None, 
             is_in_local:bool=False, 
-            command_topic="rt/arm_sdk"
+            command_topic="rt/arm_sdk",
+            do_safety_checks:bool=True,
+            safety_limit=3.
         ):
         """Initializes a controller
 
@@ -52,8 +52,19 @@ class SynchronousController:
             command_topic (str, optional): 
                 Specifies topic on which commands will be published.
                 Must be "rt/arm_sdk" or "rt/low_cmd".
+            do_safety_checks (bool, optional):
+                If set to False, will not conduct any safety checks for joint
+                velocity dq.
+                Defaults to True.
+            safety_limit (float, optional):
+                Maximal joint velocity that can be achieved without safety
+                violations.
+                Defaults to 3.
+
         """
 
+        self.do_safety_checks = do_safety_checks
+        self.safety_limit = safety_limit
         self.command_topic = command_topic
 
         # set pid controls
@@ -120,13 +131,11 @@ class SynchronousController:
         self.log("Joint State Initialized")
 
     def lock(self):
-        return
         if self._CONTROL_LOCKED or self._UPDATES_LOCKED:   
             return
         self._UPDATES_LOCKED = True
         self._CONTROL_LOCKED = True
-        print('CONTROLLER LOCKED')
-        print('-----------------')
+        print('CONTROLLER LOCKED\n-----------------')
 
     def log(self, msg):
         print(f'[{__name__}] ', msg)
@@ -134,17 +143,17 @@ class SynchronousController:
     def check_safety(self):
         for idx, joint in enumerate(G1JointIndex):
             cur_vel = self.low_state.motor_state[joint].dq
-            if abs(cur_vel) > DQ_LIMIT:
+            if abs(cur_vel) > self.safety_limit:
                 self.lock()
                 print(f'SAFETY VIOLATED ON JOINT {idx}(', joint, ')', sep='')
-                print(f'CURRENT LIMIT: {DQ_LIMIT}')
+                print(f'CURRENT LIMIT: {self.safety_limit}')
                 print(f'VELOCITY VIOL: {cur_vel}')
     
     def LowStateHandler(self, msg: LowState_) -> None:
         if self._UPDATES_LOCKED:
             return
         self.low_state = msg
-        if False:
+        if self.do_safety_checks:
             self.check_safety()
 
         if self.first_update_low_state == False:
