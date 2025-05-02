@@ -35,14 +35,23 @@ def do_hand_plots(times, to_plot, fig=None, ax=None):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_file', help='CSV file to read')
+    # parser.add_argument('input_file', help='CSV file to read')
+    parser.add_argument('--linput', '-l', 
+                        help='Input file for the left hand.')
+    parser.add_argument('--rinput', '-r', 
+                        help='Input file for the right hand.')
+    parser.add_argument(
+        '--hand', 
+        help='Determines the hand csv file is for.',
+        type=str,
+        choices=['l', 'left', 'r', 'right']
+    )
     parser.add_argument(
         '-ni', 
         '--network-interface', 
         help='Network interface for control output.'
         )
     parser.add_argument(
-        '-l',
         '--local',
         help='Specifies if robot is run in simulation',
         action='store_true'
@@ -64,6 +73,12 @@ def parse_args():
     parser.add_argument(
         '--no-safety', help='If set to true, safety will not be monitored. NOTE: MAY BE DANGEROUS.',
         action='store_true'
+    )
+    parser.add_argument(
+        '--origin', '-or', help='Specify where the (0, 0, 0) is.',
+        type=str,
+        choices=['shouder', 'pelvis'],
+        default='shoulder'
     )
     args = parser.parse_args()
     return args
@@ -105,7 +120,12 @@ def execute_trajectory(
         if cv2.waitKey(max(dt - (end - start), 0)) == ' ':
             utils.smooth_bringup(controller)
 
-def basic_csv_run(controller:DecartesController, csv_parser:Parser):
+def basic_csv_run(
+        controller:DecartesController,
+        csv_parser:Parser,
+        shoulder:bool=True,
+        is_left:bool=True
+        ):
     l_init_elbow_xyz = csv_parser.trajectory_data['elbow_positions'][0]
 
     l_init_pose = (
@@ -140,7 +160,7 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
             l_xyzrpy=l_init_pose,
             l_elbow_xyz=l_init_elbow_xyz,
             dt=10,
-            shoulder=True
+            shoulder=shoulder
         )
         skip_counter = 0
         real_times *= 0
@@ -217,15 +237,147 @@ def basic_csv_run(controller:DecartesController, csv_parser:Parser):
         print()
         # go_home(controller, total_time=3)
         
+
+def csv_run_double_hand(
+        controller:DecartesController,
+        l_file:str=None,
+        r_file:str=None,
+        in_shoulder:bool=True
+):
+    if l_file is None and r_file is None:
+        print('No files passed, nothing will be executed.') 
+        return
+
+    left_parser = None
+    right_parser = None
+    l_wrist_poses = []
+    r_wrist_poses = []
+
+    if l_file is not None:
+        left_parser = Parser(l_file)
+        left_parser.parse_trajectory_file()
+
+        left_times = np.array(left_parser.trajectory_data['times'])
+        l_line_nums = np.arange(len(left_times))
+        l_wrist_poses = np.transpose(np.array([
+            left_parser.trajectory_data['wrist_positions'],
+            left_parser.trajectory_data['wrist_orientations']
+        ]), axes=[1, 0, 2])
+        l_elbow_xyzs = left_parser.trajectory_data['elbow_positions']
+
+    if r_file is not None:
+        right_parser = Parser(r_file)
+        right_parser.parse_trajectory_file()
+
+        right_times = np.array(right_parser.trajectory_data['times'])
+        r_line_nums = np.arange(len(right_times))
+        r_wrist_poses = np.transpose(np.array([
+            right_parser.trajectory_data['wrist_positions'],
+            right_parser.trajectory_data['wrist_orientations']
+        ]), axes=[1, 0, 2])
+        r_elbow_xyzs = right_parser.trajectory_data['elbow_positions']
+
+
+    # create none data for absent hand
+    target_dt = 0.02
+    right_poses_are_empty = len(r_wrist_poses) == 0
+    left_poses_are_empty = len(l_wrist_poses) == 0
+    line_nums = None
+    target_times = None
+
+    if right_poses_are_empty:
+        target_dt = left_times[1] - left_times[0]
+        r_wrist_poses = [None] * len(l_wrist_poses)
+        r_elbow_xyzs = r_wrist_poses
+        line_nums = l_line_nums
+        target_times = left_times
+    elif left_poses_are_empty:
+        target_dt = right_times[1] - right_times[0]
+        l_wrist_poses = [None] * len(r_wrist_poses)
+        l_elbow_xyzs = l_wrist_poses
+        line_nums = r_line_nums
+        target_times = right_times
+    else:
+        assert np.equal(left_times, right_times)
+        assert np.equal(l_line_nums, r_line_nums)
+        target_times = left_times
+        line_nums = l_line_nums
+
+    l_init_elbow_xyz = l_elbow_xyzs[0]
+    l_init_pose = l_wrist_poses[0]
+    r_init_elbow_xyz = r_elbow_xyzs[0]
+    r_init_pose = r_wrist_poses[0]
+    
+    return_home_time = 10
+
+    print('GOING TO INITIAL POINT', end='\n')
+    controller.go_to(
+        l_xyzrpy=l_init_pose,
+        l_elbow_xyz=l_init_elbow_xyz,
+        r_xyzrpy=r_init_pose,
+        r_elbow_xyz=r_init_elbow_xyz,
+        dt=return_home_time,
+        shoulder=in_shoulder
+    )
+
+    real_times = np.zeros(len(target_times), float)
+    skip_counter = 0
+    cur_line = 0
+    
+
+    for idx in line_nums:
+        cur_line += 1
+        if cur_line > 20:
+            pass
+
+        # get iteration start time
+        iter_start = time()
+
+        target_time = target_times[idx]
+
+        # (l_xyz, l_rpy), _ = controller.get_ee_xyzrpy()
+        # positions[line_num] = l_xyz
+        # rotations[line_num] = l_rpy
+
+        # save target time for current command 
+        # target_times[line_num] = line['time']
+        # save time to check that is is sane
+        real_times[idx] = time()
+
+        # make sure that times align properly
+        if (real_times[idx] - real_times[0]) > target_time:
+            skip_counter += 1
+            continue
+
+        # send command 
+        controller.go_to(
+            l_xyzrpy=l_wrist_poses[idx],
+            r_xyzrpy=r_wrist_poses[idx],
+            l_elbow_xyz=l_elbow_xyzs[idx],
+            r_elbow_xyz=r_elbow_xyzs[idx],
+            shoulder=in_shoulder,
+            dt=target_dt
+        )
+
+        # get iteration end time
+        iter_end = time()
+        # calculate iteration time
+        iter_time = iter_end - iter_start
+        # compensate iteration
+        sleep_for = np.clip(target_dt - iter_time, 0, target_dt)
+        sleep(sleep_for)
+
 def main():
+
+    # file format -- xyz rpy 
+    # pelvis system
+
     # parse arguments
     args = parse_args()
+    is_left = args.hand == 'l' or args.hand == 'left'
+    in_shoulder = args.origin == 'shoulder'
     interpolate = not args.no_interp
     use_safety = not args.no_safety
-
-    # create a parser and read the file
-    csv_parser = Parser(args.input_file)
-    csv_parser.parse_trajectory_file()
 
     controller = None
     viz = None
@@ -256,7 +408,18 @@ def main():
                 command_topic='rt/lowcmd'
             )
 
-        basic_csv_run(controller, csv_parser)
+        csv_run_double_hand(
+            controller=controller,
+            l_file=args.linput,
+            r_file=args.rinput,
+            in_shoulder=in_shoulder
+        )
+        # basic_csv_run(
+        #     controller,
+        #     csv_parser,
+        #     shoulder=in_shoulder,
+        #     is_left=is_left
+        # )
 
     except KeyboardInterrupt:
         print("SIGINT received,  returning to home and saving...")
