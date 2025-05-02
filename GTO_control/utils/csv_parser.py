@@ -77,19 +77,19 @@ class Parser:
             
             # Elbow: xyz (positions 1-3), ypr are zeros (positions 4-6)
             elbow_pos = row[1:4]
-            elbow_pos[0], elbow_pos[1] = elbow_pos[1], elbow_pos[0]
-            elbow_pos = [x * 0.4 for x in elbow_pos]
+            # elbow_pos[0], elbow_pos[1] = elbow_pos[1], elbow_pos[0]
+            # elbow_pos = [x * 0.4 for x in elbow_pos]
             
             # Wrist: xyz (positions 7-9)
             wrist_pos = row[7:10]
-            wrist_pos[0], wrist_pos[1] = wrist_pos[1], wrist_pos[0]
-            wrist_pos = [x * 0.4 for x in wrist_pos]
+            # wrist_pos[0], wrist_pos[1] = wrist_pos[1], wrist_pos[0]
+            # wrist_pos = [x * 0.4 for x in wrist_pos]
             
             # Wrist: ypr (positions 10-12)
             wrist_orient = row[10:13]
-            wrist_orient.reverse()
-            wrist_orient[0] = wrist_orient[0] + 180
-            wrist_orient[2] = wrist_orient[2] - 90
+            # wrist_orient.reverse()
+            # wrist_orient[0] = wrist_orient[0] + 180
+            # wrist_orient[2] = wrist_orient[2] + 90
             wrist_orient = [x * (np.pi / 180) for x in wrist_orient]
            
 
